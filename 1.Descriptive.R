@@ -1,4 +1,4 @@
-# 0. Packages -------------------------------------------------------------
+# 0. Packages and Data -----------------------------------------------------
 
 library(tidyverse)
 library(dplyr)
@@ -8,6 +8,13 @@ library(tidyr)
 library(xtable)
 library(ggpubr)
 library(viridis)
+
+# load data
+load("0.DataBase/CSH.RData")
+CSH_2019_0 = CSH |> filter(year == 2019, main == 0)
+CSH_2019_1 = CSH |> filter(year == 2019, main == 1) |> drop_na()
+# Review from here!! ----------- 
+
 
 # 1. Plots: Volume Surgeries and costs -------------------------------------
 # Create a folder for Descriptive statistics plots and set as new working directory

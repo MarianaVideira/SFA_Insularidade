@@ -12,15 +12,12 @@ CSH_2019_0 = CSH |> filter(year == 2019, main == 0)
 CSH_2019_1 = CSH |> filter(year == 2019, main == 1) |> drop_na()
 
   ## 1.1. Define functional forms --------------------------------------------
-  form = log(operational) ~ I(log(in_days))
+  form = log(operational) ~ I(log(in_days)) 
   formquad = operational ~ in_days +in_days*in_days
   formtrans = log(operational) ~ log(in_days) + I((log(in_days)^2)/2)
 
   ## 1.2. Define Avg. functional forms --------------------------------------
-  aform = log(avg_operational) ~ I(log(in_days))
-  aformquad = avg_operational ~ in_days +I(in_days^2)
-  aformtrans = log(avg_operational) ~ log(in_days) + I((log(in_days)^2)/2)
-  
+
 # 2. Model Estimation (Cross section) --------------------------------------
   # Create a folder for Descriptive statistics plots and set as new working directory
   dir.create("outputs")
@@ -58,31 +55,10 @@ CSH_2019_1 = CSH |> filter(year == 2019, main == 1) |> drop_na()
                 printIter = 1 )
   summary(sfrontt)
   
-  ## 2.1 Avg Logarithm (Cobb-Doug) ------------------------------------------------
-  asfront = sfa( aform,  
-                data = CSH_2019_1,
-                ineffDecrease = F, # FALSE for cost function and TRUE for production
-                truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
-                timeEffect = FALSE, # time is allowed to have an effect on efficiency
-                printIter = 1 )
-  summary(sfront)
+  ## 2.1 Avg Logarithm (Cobb-Doug) -----------------------------------------------
   
   ## 2.2 Avg Quadratic specifications --------------------------------------------
-  asfrontq = sfa( aformquad,  
-                 data = CSH_2019_1,
-                 ineffDecrease = FALSE, # FALSE for cost function and TRUE for production
-                 truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
-                 timeEffect = FALSE, # time is allowed to have an effect on efficiency
-                 printIter = 1 )
-  summary(sfrontq)
-  ## 2.3 Avg Translog specifications --------------------------------------------
-  asfrontt = sfa(aformtrans,  
-                data = CSH_2019_1,
-                ineffDecrease = FALSE, # FALSE for cost function and TRUE for production
-                truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
-                timeEffect = FALSE, # time is allowed to have an effect on efficiency
-                printIter = 1 )
-  summary(asfrontt)
+
 # 3. Prediction with Main -------------------------------------------------
   # Predict Costs (main = 0)
   predic = predict(sfront, newdata = subset(CSH_2019, main == 0), asInData = TRUE )

@@ -4,6 +4,7 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(xtable)
+
 # 1. Data -----------------------------------------------------------------
 load("0.DataBase/CSP.RData")
 CSP_2018 = CSP |> filter(year == 2018)
