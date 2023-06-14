@@ -15,29 +15,25 @@ load("0.DataBase/CSH.RData")
   ## 2.1 Variables and Functional form ------------------------------------
 
   ### A. Select variables and test correlation ----------------------------
-  CSH_1 = CSH |> select(hospital, year, operational, in_days, RO, azo, region, 
-                        surg, app, patient_dis) |> 
+  CSH_1 = CSH |> select(hospital, year, operational, cmvmc, in_days, RO, azo, region, 
+                        surg, app, urge, patient_dis, wait_scheduled_surg) |> 
     drop_na()
 
   # correlation testing RO
-  cor(CSH_1$in_days, CSH_1$RO)
-  cor(CSH_1$RO, CSH_1$surg)
-  
-  # correlation testing volume variables
-  cor(CSH_1$in_days, CSH_1$surg)
-  cor(CSH_1$surg, CSH_1$app)
-  cor(CSH_1$in_days, CSH_1$app)
-  cor(CSH_1$in_days, CSH_1$patient_dis)
-  cor(CSH_1$surg, CSH_1$patient_dis)
-  
+  corr_table = CSH_1 |> 
+    select(operational, cmvmc, in_days, RO, surg, app, urge, 
+           patient_dis, wait_scheduled_surg) |> 
+    cor()
+
   # Discard volume variables that have high correlation 
   #(choosen the scale variable will capture the effects of the others)
-  CSH_1 = CSH |> select(hospital, year, operational, in_days, RO, azo, region) |> 
+  CSH_1 = CSH |> select(hospital, year, operational, in_days, RO, azo, region, 
+                        surg, urge, wait_scheduled_surg) |> 
     drop_na()
   
   ### B. Panel data -------------------------------------------------------
   CSH_panel = pdata.frame(CSH_1, c("hospital", "year"))
-
+# STOP HERE_--------
   ## 2.2 Define functional forms ------------------------------------------
   form = log(operational) ~ log(in_days) + log(RO) + azo # includes Dummy variable
   formt = log(operational) ~ log(in_days) + I((log(in_days)^2)/2) + log(RO) + azo
