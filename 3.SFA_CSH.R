@@ -9,103 +9,106 @@ library(stargazer)
 
 # 1. Data -----------------------------------------------------------------
 load("0.DataBase/CSH.RData")
-
-# 2. Operational Cost function --------------------------------------------
-
-  ## 2.1 Variables and Functional form ------------------------------------
-
-  ### A. Select variables and test correlation ----------------------------
-  CSH_1 = CSH |> select(hospital, year, operational, cmvmc, in_days, RO, azo, region, 
-                        surg, app, urge, patient_dis, wait_scheduled_surg) |> 
-    drop_na()
-
-  # correlation testing RO
-  corr_table = CSH_1 |> 
-    select(operational, cmvmc, in_days, RO, surg, app, urge, 
-           patient_dis, wait_scheduled_surg) |> 
-    cor()
-
-  # Discard volume variables that have high correlation 
-  #(choosen the scale variable will capture the effects of the others)
-  CSH_1 = CSH |> select(hospital, year, operational, in_days, RO, azo, region, 
-                        surg, urge, wait_scheduled_surg) |> 
-    drop_na()
+  dir.create("3.SFA_outputs")
+  setwd("3.SFA_outputs")
+  dir.create("CSH")
+  setwd("CSH")
+  ## 1.1 Variables and Functional form ------------------------------------
+    ### A. Select variables and test correlation ----------------------------
+    CSH_0 = CSH |> select(hospital, year, operational, cmvmc, in_days, RO, azo, region, 
+                          surg, app, urge, patient_dis, wait_scheduled_surg) |> 
+      drop_na()
+    
+    # correlation testing RO
+    corr_table = CSH_0 |> 
+      select(operational, cmvmc, in_days, RO, surg, app, urge, 
+             patient_dis, wait_scheduled_surg) |> 
+      cor()
+    
+    # Discard volume variables that have high correlation 
+    #(choosen the scale variable will capture the effects of the others)
+    CSH_0 = CSH |> select(hospital, year, operational, in_days, RO, azo, region, 
+                          surg, urge, wait_scheduled_surg) |> 
+      filter(azo == 0) |>
+      drop_na()
+    
+    ### B. Panel data -------------------------------------------------------
+    CSH_panel = pdata.frame(CSH_0, c("hospital", "year"))
+  ## 1.2 Define functional forms ------------------------------------------
+  form = log(operational) ~ log(in_days) + log(surg) + log(urge) + log(RO) # includes Dummy variable
+  formt = log(operational) ~ log(in_days) + log(surg) + I((log(in_days)^2)/2) + log(urge) + log(RO)
   
-  ### B. Panel data -------------------------------------------------------
-  CSH_panel = pdata.frame(CSH_1, c("hospital", "year"))
-# STOP HERE_--------
-  ## 2.2 Define functional forms ------------------------------------------
-  form = log(operational) ~ log(in_days) + log(RO) + azo # includes Dummy variable
-  formt = log(operational) ~ log(in_days) + I((log(in_days)^2)/2) + log(RO) + azo
+  # Previously tested functional forms
+  # formt = log(operational) ~ log(in_days) + log(surg) + I((log(in_days)^2)/2) + I((log(surg)^2)/2) + log(urge) + log(RO)
   
   # Firm level inefficiencies models BC95
   # mean inefficiency of u_it is "determined" by factors z_it
-  formz = log(operational) ~ I(log(in_days)) + azo | RO
-  formtz = log(operational) ~ log(in_days) + I((log(in_days)^2)/2) + azo | RO
-    
+  formz = log(operational) ~ I(log(in_days)) + log(surg) + log(urge)| RO + wait_scheduled_surg
+  formtz = log(operational) ~ log(in_days) + I((log(in_days)^2)/2) + log(surg) + log(urge)| RO + wait_scheduled_surg
+  
   # FE model G05 (Greene)
   # time invariant individual heterogeneity is not separate from individual innefficieny
-  form_r = log(operational) ~ I(log(in_days)) + log(RO) + factor(region) 
-  formt_r = log(operational) ~ log(in_days) + I((log(in_days)^2)/2) + log(RO) + factor(region) 
-
-  ## 2.3 Estimation: time invariant inefficiencies ------------------------
-  ### A. Cobb-Douglas (form) ----------------------------------------------
-  sfront = sfa( form,  
-                data = CSH_panel,
-                ineffDecrease = F, # FALSE for cost function and TRUE for production
-                truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
-                timeEffect = FALSE, # time is allowed to have an effect on efficiency
-                printIter = 1 )
-  summary(sfront, extraPar = TRUE)
-
-  ### B. Trans log (formt) -------------------------------------------------
-  sfrontt = sfa( formt,  
-                data = CSH_panel,
-                ineffDecrease = F, # FALSE for cost function and TRUE for production
-                truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
-                timeEffect = FALSE, # time is allowed to have an effect on efficiency
-                printIter = 1 )
-  summary(sfrontt)
-  class(summary(sfrontt))
+  form_r = log(operational) ~ log(in_days) + log(surg) + log(urge) + log(RO) + factor(region) 
+  formt_r = log(operational) ~ log(in_days) + log(surg) + I((log(in_days)^2)/2) + I((log(surg)^2)/2) + log(urge) + log(RO) + factor(region) 
   
-  ### C. Cobb-Douglas with z_it (formz) -------------------------------------
-  sfrontz = sfa( formz,  
-                 data = CSH_panel,
-                 ineffDecrease = F, # FALSE for cost function and TRUE for production
-                 truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
-                 timeEffect = FALSE, # time is allowed to have an effect on efficiency
-                 printIter = 1 )
-  summary(sfrontz)
-  
-  ### D. Trans log with z_it (formtz) --------------------------------------
-  sfronttz = sfa( formtz,  
-                 data = CSH_panel,
-                 ineffDecrease = F, # FALSE for cost function and TRUE for production
-                 truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
-                 timeEffect = FALSE, # time is allowed to have an effect on efficiency
-                 printIter = 1 )
-  summary(sfronttz)
-  
-  ### E. Cobb-Douglas with FE by region (form_r) ----------------------------
-  sfrontr = sfa( form_r,  
+# 2. Operational Cost function --------------------------------------------
+  ## 2.1 Estimation: time invariant inefficiencies ------------------------
+    ### A. Cobb-Douglas (form) ----------------------------------------------
+    sfront = sfa( form,  
                   data = CSH_panel,
                   ineffDecrease = F, # FALSE for cost function and TRUE for production
                   truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
                   timeEffect = FALSE, # time is allowed to have an effect on efficiency
                   printIter = 1 )
-  summary(sfrontr)
+    summary(sfront, extraPar = TRUE)
   
-  ### F. Trans Log with FE by region (form_r) ------------------------------
-  sfronttr = sfa( formt_r,  
-                 data = CSH_panel,
-                 ineffDecrease = F, # FALSE for cost function and TRUE for production
-                 truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
-                 timeEffect = FALSE, # time is allowed to have an effect on efficiency
-                 printIter = 1 )
-  summary(sfronttr)
-  
+    ### B. Trans log (formt) -------------------------------------------------
+    sfrontt = sfa( formt,  
+                  data = CSH_panel,
+                  ineffDecrease = F, # FALSE for cost function and TRUE for production
+                  truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
+                  timeEffect = FALSE, # time is allowed to have an effect on efficiency
+                  printIter = 1 )
+    summary(sfrontt)
+    
+    ### C. Cobb-Douglas with z_it (formz) -------------------------------------
+    sfrontz = sfa( formz,  
+                   data = CSH_panel,
+                   ineffDecrease = F, # FALSE for cost function and TRUE for production
+                   truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
+                   timeEffect = FALSE, # time is allowed to have an effect on efficiency
+                   printIter = 1 )
+    summary(sfrontz)
+    
+    ### D. Trans log with z_it (formtz) --------------------------------------
+    sfronttz = sfa( formtz,  
+                   data = CSH_panel,
+                   ineffDecrease = F, # FALSE for cost function and TRUE for production
+                   truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
+                   timeEffect = FALSE, # time is allowed to have an effect on efficiency
+                   printIter = 1 )
+    summary(sfronttz)
+    
+    ### E. Cobb-Douglas with FE by region (form_r) ----------------------------
+    sfrontr = sfa( form_r,  
+                    data = CSH_panel,
+                    ineffDecrease = F, # FALSE for cost function and TRUE for production
+                    truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
+                    timeEffect = FALSE, # time is allowed to have an effect on efficiency
+                    printIter = 1 )
+    summary(sfrontr)
+    
+    ### F. Trans Log with FE by region (form_r) ------------------------------
+    sfronttr = sfa( formt_r,  
+                   data = CSH_panel,
+                   ineffDecrease = F, # FALSE for cost function and TRUE for production
+                   truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
+                   timeEffect = FALSE, # time is allowed to have an effect on efficiency
+                   printIter = 1 )
+    summary(sfronttr)
+    
   ## 2.? Tables -----------------------------------------------------------
-  ### A. BC92 ----------------------------------------------------------------
+  ### A. BC92 -------------------------------------------------------------
   # Creative approach to export SFA tables (since normal packages don't support format)
   # save the coefficients and p-v as vectors:
   c1 = as.vector(coef(sfront))
