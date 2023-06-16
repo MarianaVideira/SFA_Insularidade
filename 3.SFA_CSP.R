@@ -10,6 +10,10 @@ library(stargazer)
 
 # 1. Data -----------------------------------------------------------------
 load("0.DataBase/CSP.RData")
+  dir.create("3.SFA_outputs")
+  setwd("3.SFA_outputs")
+  dir.create("CSP")
+  setwd("CSP")
   ## 1.1 Data and Functional forms ----------------------------------------
     ### A. Select variables and test correlation ----------------------------
     CSP_1 = CSP |> select(id, nome, year, azo, staff, app, app_dome, app_remote, 
@@ -196,13 +200,13 @@ load("0.DataBase/CSP.RData")
     summary(sfrontz, extraPar = TRUE)
   
     ### D. Trans log with z_it (formtz) --------------------------------------
-  sfronttz = sfa( formtz,  
-                  data = CSP_panel,
-                  ineffDecrease = F, # FALSE for cost function and TRUE for production
-                  truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
-                  timeEffect = FALSE, # time is allowed to have an effect on efficiency
-                  printIter = 1 )
-  summary(sfronttz, extraPar = TRUE)
+    sfronttz = sfa( formtz,  
+                    data = CSP_panel,
+                    ineffDecrease = F, # FALSE for cost function and TRUE for production
+                    truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
+                    timeEffect = FALSE, # time is allowed to have an effect on efficiency
+                    printIter = 1 )
+    summary(sfronttz, extraPar = TRUE)
   
 ## 4. Tables fo Panel Data ------------------------------------------------
   ## A. BC92 ---------------------------------------------------------------
@@ -210,8 +214,8 @@ load("0.DataBase/CSP.RData")
   # save the coefficients and p-v as vectors:
   c1 = as.vector(coef(sfront))
   c2 = as.vector(coef(sfrontt))
-  coef(summary(sfront))[,4]
-  coef(summary(sfront))
+
+  
   pv1 = as.vector(coef(summary(sfront))[,4])
   pv2 = as.vector(coef(summary(sfrontt))[,4])
 
@@ -222,8 +226,8 @@ load("0.DataBase/CSP.RData")
   ll1 = round(as.numeric(logLik(sfront, which = "mle")),3)
   ll2 = round(as.numeric(logLik(sfrontt, which = "mle")),3)
   
-  me1 = round(mean(efficiencies(sfront)),3)
-  me2 = round(mean(efficiencies(sfrontt)),3)
+  me1 = round(summary(sfrontz)$efficMean,3)
+  me2 = round(summary(sfronttz)$efficMean,3)
 
   #run the same specifications using a linear model 
   # (remember to change the "|" before the z variables to a "+" in the linear model):
@@ -237,6 +241,7 @@ load("0.DataBase/CSP.RData")
             p = list(pv1,pv2),
             t.auto = FALSE,
             p.auto = FALSE,
+            intercept.bottom = FALSE,
             digits = 4, float.env = "table",
             dep.var.labels=c("log Staff Costs"),
             title = "Stochastic Frontier: Primary Healthcare",
@@ -247,7 +252,7 @@ load("0.DataBase/CSP.RData")
             add.lines = list(c("Gamma", g1, g2), 
                              c("Log-likelihood value", ll1,ll2),
                              c("Mean efficiency", me1, me2)),
-            covariate.labels = c("$\\log \\text{Appointments}$", "$(\\log \\text{Appointments}) ^2$", 
+            covariate.labels = c("Constant","$\\log \\text{Appointments}$", "$(\\log \\text{Appointments}) ^2$", 
                                  "$\\log$ proportion ages 45-64", "$\\log$ proportion ages 75+"))
   
   ## B. BC95 -------------------------------------------------------------
@@ -271,12 +276,11 @@ load("0.DataBase/CSP.RData")
   
   #run the same specifications using a linear model 
   # (remember to change the "|" before the z variables to a "+" in the linear model):
-  formz = log(staff) ~ log(app) + log(n_polos) + prop_nofam_MF + prop_age_45_64+ prop_age_75_hig + prop_age_5_14 + prop_age_0_4 + prop_fem
-  formtz = log(staff) ~ log(app) + I((log(app)^2)/2) + log(n_polos) + prop_nofam_MF + prop_age_45_64+ prop_age_75_hig + prop_age_5_14 + prop_age_0_4 + prop_fem
+  lm1 = lm(log(staff) ~ log(app) + log(n_polos) + log(prop_age_45_64) + prop_nofam_MF + prop_age_45_64+ prop_age_75_hig + prop_age_5_14 + prop_age_0_4 + prop_fem, data = CSP_panel)
+  lm2 = lm(log(staff) ~ log(app) + I((log(app)^2)/2) + log(n_polos) + log(prop_age_45_64) + prop_nofam_MF + prop_age_45_64+ prop_age_75_hig + prop_age_5_14 + prop_age_0_4 + prop_fem, data = CSP_panel)
   
-  lm1 = lm(formz, data = CSP_panel)
-  lm2 = lm(formtz, data = CSP_panel)
-  
+  summary(sfrontz)
+  summary(sfronttz)
   #Finally, use stargazer on the linear models, and change the coefficients and the standard errors reported using the "coef" and "se" arguments:
   stargazer(lm1, lm2,
             coef = list(c1,c2), 
@@ -284,23 +288,26 @@ load("0.DataBase/CSP.RData")
             se = list(pv1,pv2),
             t.auto = FALSE,
             p.auto = FALSE,
+            intercept.bottom = FALSE,
             digits = 3, float.env = "table",
             dep.var.labels=c("log Staff Costs"),
             title = "Stochastic Frontier: Primary Healthcare",
             column.labels = c("Cobb-Douglas", "Translog"),
             model.numbers = TRUE,
-            out = "SFAregression_table_CSP.tex",
+            out = "SFAregressionz_table_CSP.tex",
             omit.stat = c("rsq", "adj.rsq", "ser", "f"),
             add.lines = list(c("Gamma", g1, g2), 
                              c("Log-likelihood value", ll1,ll2),
                              c("Mean efficiency", me1, me2)),
-            covariate.labels = c("$\\log \\text{Appointments}$","$(\\log \\text{Appointments}) ^2$", 
-                                 "$\\log$ nº of Polos", "proportion without FD",
+            covariate.labels = c("Constant","$\\log \\text{Appointments}$","$(\\log \\text{Appointments}) ^2$", 
+                                 "$\\log$ nº of Polos", "Z Constant","proportion without FD",
                                  "proportion ages 45-64", "proportion ages 75+",
                                  "proportion ages 05-14", "proportion ages 00-04", 
                                  "proportion female"))
 
+  
 # §. Tests --------------------------------------------------------------
-warnings()     
+warnings()  
+setwd("../..")
 ###### END #####
 rm(list=ls())
