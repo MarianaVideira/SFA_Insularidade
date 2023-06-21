@@ -24,11 +24,8 @@ setwd("plots")
 # function that generates a plot for a given data set
 generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = NULL, ylabel = NULL) {
   if(!is.null(filter_year)){
-    data = data |> filter(year == filter_year)
-  }
-  
-  ## 1. Plots: Volume Surgeries and costs -----------------------------------
-
+    data = data |> filter(year == filter_year)}
+    
     data |> 
       select(year, region, {{volume}}, {{cost}}) |> 
       drop_na() 
@@ -54,7 +51,9 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     
     return(p)
   }
-    ### 1.1 Surgeries and operational costs ---------------------------------
+  
+## 1. Plots: Volume Surgeries and costs ------------------------------------
+    ### 1.1 Surgeries and operational costs --------------------------------
     
     # A. Plot combined years and most recent (complete) year: Average Cost per patient
     plot1 = generate_plot(CSH, surg, cmvmc, "Costs per patient", ylabel = "CMVMC cost per patient", xlabel = "Surgeries")
