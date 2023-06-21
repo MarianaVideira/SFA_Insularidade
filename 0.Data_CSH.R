@@ -17,7 +17,7 @@ hospitals_surg = read_csv2("data/CSH/1. ACSS/intervencoes-cirurgicas.csv") #
 hospitals_wait = read_csv2("data/CSH/1. ACSS/demora-media-antes-da-cirurgia.csv") 
 
   # Benchmarking Website (Cost variables)
-  c_cmvmc = read_csv("data/CSH/2. Benchmarking/custos_op.csv")
+  c_operational = read_csv("data/CSH/2. Benchmarking/custos_op.csv")
   c_staff = read_csv("data/CSH/2. Benchmarking/custos_pess.csv")
   c_staff_adjusted = read_csv("data/CSH/2. Benchmarking/custos_pess_aj.csv")
   c_pharma = read_csv("data/CSH/2. Benchmarking/custos_farm.csv")
@@ -26,9 +26,8 @@ hospitals_wait = read_csv2("data/CSH/1. ACSS/demora-media-antes-da-cirurgia.csv"
   c_fse = read_csv("data/CSH/2. Benchmarking/custos_fse.csv")
 
 # B. Data for Demographic Characteristics
-gdhs = read_dta("data/CSH/5. GDH/GDH2014_st13.dta") 
-  
-gdhs_test = gdhs |> sample_n(3000)
+#gdhs = read_dta("data/CSH/5. GDH/GDH2014_st13.dta") 
+#gdhs_test = gdhs |> sample_n(3000)
 
 # C. Data for Açores
 hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv") 
@@ -37,31 +36,30 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
 
 # 1. Tidy Data ------------------------------------------------------------
   ## 1.1 Operational Costs -------------------------------------------------
-
   hospitals_fin = hospitals_fin |>
     separate("Período", c("year", "month"), "-") |>
     separate("Localização Geográfica", c("geo_lat", "geo_lon"), ",") |>
     rename("region" = "Região", "hospital" = "Entidade",
                    "operational" = "Gastos Operacionais") |>
     mutate(year = as.numeric(year), month = as.numeric(month), 
-           operational = abs(as.numeric(operational))) |>
-    select(c(operational, region, year, month, hospital)) |>
+           operational_ACSS = abs(as.numeric(operational))) |>
+    select(c(operational_ACSS, region, year, month, hospital)) |>
     drop_na() |>
     group_by(hospital, year, region) |>
     filter(n() == 12) |>
-    summarise(operational = sum(operational)) |>
+    summarise(operational_ACSS = sum(operational_ACSS)) |>
     ungroup() 
 
   ## 1.2 Operational Costs (Benchmarking) ------------------------------------
-  c_cmvmc = c_cmvmc |>
+  c_operational = c_operational|>
     rename("hospital" = "Instituição", "year" = "Ano") |> 
     select(-c(Grupo)) |>
-    mutate(year = as.numeric(year), cmvmc = abs(cost_op)) |>
+    mutate(year = as.numeric(year), operational = abs(cost_op)) |>
     drop_na() |>
     group_by(hospital, year) |>
     filter(n() == 12) |>
-    summarise( cmvmc = sum(cmvmc), dp = sum(dp_op)) |>
-    mutate(avg_cmvmc = cmvmc/dp) |>
+    summarise( operational = sum(operational), dp = sum(dp_op)) |>
+    mutate(avg_operational = operational/dp) |>
     ungroup() #|> select(-dp) # I should keeo dp in the database. 
 
   ## 1.3 Staff Costs --------------------------------------------------------
@@ -371,7 +369,7 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
   hospitals_beds = rename_hospitals(hospitals_beds)
   hospitals_surg = rename_hospitals(hospitals_surg)
   hospitals_wait = rename_hospitals(hospitals_wait)
-  c_cmvmc = rename_hospitals(c_cmvmc)
+  c_operational = rename_hospitals(c_operational)
   c_staff = rename_hospitals(c_staff)
   c_staff_adjusted = rename_hospitals(c_staff_adjusted)
   c_pharma = rename_hospitals(c_pharma)
@@ -393,7 +391,7 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
     filter(year > 2014) 
   
   # join all databases from benchmarking
-  list_df = list(CSH, c_cmvmc, c_staff, c_staff_adjusted,
+  list_df = list(CSH, c_operational, c_staff, c_staff_adjusted,
                  c_pharma, c_medicine, c_fse, c_materials)
   CSH = list_df |> 
     reduce(function(x, y) full_join(x, y, by = c("hospital" = "hospital",
