@@ -15,9 +15,10 @@ load("0.DataBase/CSH.RData")
 # I. Scatter Plots (reference year) ----------------------------------------
 
 # Create a folder for Descriptive statistics plots and set as new working directory
-setwd("outputs")
 dir.create("1.descriptive_stats")
 setwd("1.descriptive_stats")
+dir.create("CSH")
+setwd("CSH")
 dir.create("plots")
 setwd("plots")
 
@@ -52,12 +53,12 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     return(p)
   }
   
-## 1. Plots: Volume Surgeries and costs ------------------------------------
+  ## 1. Plots: Volume Surgeries and costs ------------------------------------
     ### 1.1 Surgeries and operational costs --------------------------------
     
     # A. Plot combined years and most recent (complete) year: Average Cost per patient
-    plot1 = generate_plot(CSH, surg, cmvmc, "Costs per patient", ylabel = "CMVMC cost per patient", xlabel = "Surgeries")
-    plot2 = generate_plot(CSH, surg, avg_cmvmc, 
+    plot1 = generate_plot(CSH, surg, avg_operational, "Costs per patient", ylabel = "CMVMC cost per patient", xlabel = "Surgeries")
+    plot2 = generate_plot(CSH, surg, avg_operational, 
                           "Costs per patient: year 2021", filter_year = 2021, ylabel = "CMVMC cost per patient", xlabel = "Surgeries")
     
     # B. Plot combined years and most recent (complete) year: Total costs
@@ -70,129 +71,128 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     #grid = grid.arrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2, top = "Operational costs per number of surgeries")
     grid = ggarrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2, common.legend = T, legend = "bottom")
     ggsave("surg_op.pdf", grid, limitsize = F, width = 22, height = 20,units = "cm")
-## STOPPED HERE ----------
-    ### 1.2 Surgeries and staff costs -------------------------------------------
+    ### 1.2 Surgeries and staff costs --------------------------------------
     # A. Plot combined years and most recent (complete) year: Average Cost per patient
-    plot1 = generate_plot(all, surg_total, c_pess_acp, "Costs per patient", ylabel = "Staff cost per patient", xlabel = "Surgeries")
-    plot2 = generate_plot(all, surg_total, c_pess_acp, "Costs per patient: year 2021", filter_year = 2021 , ylabel = "Operational cost per patient", xlabel = "Surgeries")
+    plot1 = generate_plot(CSH, surg, avg_staff, "Costs per patient", ylabel = "Staff cost per patient", xlabel = "Surgeries")
+    plot2 = generate_plot(CSH, surg, avg_staff, "Costs per patient: year 2021", filter_year = 2021 , ylabel = "Operational cost per patient", xlabel = "Surgeries")
     
     # B. Plot combined years and most recent (complete) year: Total costs
     # Arrange the plots in a grid
-    plot3 = generate_plot(all, surg_total, c_pess, "Total costs", ylabel = "Staff costs", xlabel = "Surgeries")
-    plot4 = generate_plot(all, surg_total, c_pess, "Total costs: year 2021", filter_year = 2021, ylabel = "Staff cost", xlabel = "Surgeries")
+    plot3 = generate_plot(CSH, surg, staff, "Total costs", ylabel = "Staff costs", xlabel = "Surgeries")
+    plot4 = generate_plot(CSH, surg, staff, "Total costs: year 2021", filter_year = 2021, ylabel = "Staff cost", xlabel = "Surgeries")
     
     # C. Plot Grid 
     grid = ggarrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2, common.legend = T, legend = "bottom")
     ggsave("surg_pess.pdf", grid,limitsize = F, width = 22, height = 20,units = "cm")
     
-    ### 1.3 Surgeries and staff adjusted costs ----------------------------------
+    ### 1.3 Surgeries and staff adjusted costs -----------------------------
     # A. Plot combined years and most recent (complete) year: Average Cost per patient
-    plot1 = generate_plot(all, surg_total, c_pess_a_acp, "Costs per patient",  ylabel = "Staff adjusted cost per patient", xlabel = "Surgeries")
-    plot2 = generate_plot(all, surg_total, c_pess_a_acp, "Costs per patient: year 2021", ylabel = "Staff adjusted cost per patient", xlabel = "Surgeries")
+    plot1 = generate_plot(CSH, surg, avg_staff_adjusted, "Costs per patient",  ylabel = "Staff adjusted cost per patient", xlabel = "Surgeries")
+    plot2 = generate_plot(CSH, surg, avg_staff_adjusted, "Costs per patient: year 2021", ylabel = "Staff adjusted cost per patient", xlabel = "Surgeries")
     
     # B. Plot combined years and most recent (complete) year: Total costs
     # Arrange the plots in a grid
-    plot3 = generate_plot(all, surg_total, c_pess_a, "Total costs", ylabel = "Staff adjusted costs", xlabel = "Surgeries")
-    plot4 = generate_plot(all, surg_total, c_pess_a, "Total costs: year 2021", filter_year = 2021, ylabel = "Staff adjusted costs", xlabel = "Surgeries")
+    plot3 = generate_plot(CSH, surg, staff_adjusted, "Total costs", ylabel = "Staff adjusted costs", xlabel = "Surgeries")
+    plot4 = generate_plot(CSH, surg, staff_adjusted, "Total costs: year 2021", filter_year = 2021, ylabel = "Staff adjusted costs", xlabel = "Surgeries")
     
     # C. Plot Grid 
     grid = ggarrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2, common.legend = T, legend = "bottom")
     ggsave("surg_pess_a.pdf", grid, limitsize = F, width = 22, height = 20,units = "cm")
     
     
-  ## 2. Plots: Volume Appointments and costs ---------------------------------
-    ### 2.1 Appointments and operational costs -------------------------------------
+  ## 2. Plots: Volume Appointments and costs -------------------------------
+    ### 2.1 Appointments and operational costs -----------------------------
     
     # A. Plot combined years and most recent (complete) year: Average Cost per patient
-    plot1 = generate_plot(all, app, c_op_acp, "Costs per patient", ylabel = "Operational cost per patient", xlabel = "Appointments")
-    plot2 = generate_plot(all, app, c_op_acp, "Costs per patient: year 2021", filter_year = 2021, ylabel = "Operational cost per patient", xlabel = "Appointments")
+    plot1 = generate_plot(CSH, app, avg_operational, "Costs per patient", ylabel = "Operational cost per patient", xlabel = "Appointments")
+    plot2 = generate_plot(CSH, app, avg_operational, "Costs per patient: year 2021", filter_year = 2021, ylabel = "Operational cost per patient", xlabel = "Appointments")
     
     # B. Plot combined years and most recent (complete) year: Total costs
     # Arrange the plots in a grid
-    plot3 = generate_plot(all, app, c_op, "Total costs", ylabel = "Operational costs", xlabel = "Appointments")
-    plot4 = generate_plot(all, app, c_op, "Total costs: year 2021", filter_year = 2021, ylabel = "Operational costs", xlabel = "Appointments")
+    plot3 = generate_plot(CSH, app, operational, "Total costs", ylabel = "Operational costs", xlabel = "Appointments")
+    plot4 = generate_plot(CSH, app, operational, "Total costs: year 2021", filter_year = 2021, ylabel = "Operational costs", xlabel = "Appointments")
     
     # C. Plot Grid 
     grid = ggarrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2, common.legend = T, legend = "bottom")
     ggsave("app_op.pdf", grid, limitsize = F, width = 22, height = 20,units = "cm")
     
-    ### 2.2 Appointments and staff costs -------------------------------------------
+    ### 2.2 Appointments and staff costs -----------------------------------
     # A. Plot combined years and most recent (complete) year: Average Cost per patient
-    plot1 = generate_plot(all, app, c_pess_acp, "Costs per patient", ylabel = "Staff cost per patient", xlabel = "Appointments")
-    plot2 = generate_plot(all, app, c_pess_acp, "Costs per patient: year 2021", filter_year = 2021, ylabel = "Staff cost per patient", xlabel = "Appointments")
+    plot1 = generate_plot(CSH, app, avg_staff, "Costs per patient", ylabel = "Staff cost per patient", xlabel = "Appointments")
+    plot2 = generate_plot(CSH, app, avg_staff, "Costs per patient: year 2021", filter_year = 2021, ylabel = "Staff cost per patient", xlabel = "Appointments")
     
     # B. Plot combined years and most recent (complete) year: Total costs
     # Arrange the plots in a grid
-    plot3 = generate_plot(all, app, c_pess, "Total costs", ylabel = "Staff costs", xlabel = "Appointments")
-    plot4 = generate_plot(all, app, c_pess, "Total costs: year 2021", filter_year = 2021, ylabel = "Staff costs", xlabel = "Appointments")
+    plot3 = generate_plot(CSH, app, staff, "Total costs", ylabel = "Staff costs", xlabel = "Appointments")
+    plot4 = generate_plot(CSH, app, staff, "Total costs: year 2021", filter_year = 2021, ylabel = "Staff costs", xlabel = "Appointments")
     
     # C. Plot Grid 
     grid = ggarrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2, common.legend = T, legend = "bottom")
     ggsave("app_pess.pdf", grid, limitsize = F, width = 22, height = 20,units = "cm")
     
-    ### 2.3 Appointments and staff adjusted costs ----------------------------------
+    ### 2.3 Appointments and staff adjusted costs --------------------------
     # A. Plot combined years and most recent (complete) year: Average Cost per patient
-    plot1 = generate_plot(all, app, c_pess_a_acp, "Adjusted costs per patient", ylabel = "Staff adjusted cost per patient", xlabel = "Appointments")
-    plot2 = generate_plot(all, app, c_pess_a_acp, "Adjusted costs per patient: year 2021", filter_year = 2021, ylabel = "Staff adjusted cost per patient", xlabel = "Appointments")
+    plot1 = generate_plot(CSH, app, avg_staff_adjusted, "Adjusted costs per patient", ylabel = "Staff adjusted cost per patient", xlabel = "Appointments")
+    plot2 = generate_plot(CSH, app, avg_staff_adjusted, "Adjusted costs per patient: year 2021", filter_year = 2021, ylabel = "Staff adjusted cost per patient", xlabel = "Appointments")
     
     # B. Plot combined years and most recent (complete) year: Total costs
     # Arrange the plots in a grid
-    plot3 = generate_plot(all, app, c_pess_a, "Total adjusted costs", ylabel = "Staff adjusted costs", xlabel = "Appointments")
-    plot4 = generate_plot(all, app, c_pess_a, "Total adjusted costs: year 2021", filter_year = 2021, ylabel = "Staff adjusted costs", xlabel = "Appointments")
+    plot3 = generate_plot(CSH, app, staff_adjusted, "Total adjusted costs", ylabel = "Staff adjusted costs", xlabel = "Appointments")
+    plot4 = generate_plot(CSH, app, staff_adjusted, "Total adjusted costs: year 2021", filter_year = 2021, ylabel = "Staff adjusted costs", xlabel = "Appointments")
     
     # C. Plot Grid 
     grid = ggarrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2, common.legend = T, legend = "bottom")
     ggsave("app_pess_a.pdf", grid, limitsize = F, width = 22, height = 20,units = "cm")
     
     
-  ## 3. Plots: Volume Inpatient admissions (in days) and costs ---------------------------------
-    ### 3.1 Admissions and operational costs -------------------------------------
+  ## 3. Plots: Volume Inpatient days and costs -----------------------------
+    ### 3.1 In_days and operational costs ----------------------------------
     
     # A. Plot combined years and most recent (complete) year: Average Cost per patient
-    plot1 = generate_plot(all, stay, c_op_acp, "Costs per patient", ylabel = "Operational cost per patient", xlabel = "Admissions")
-    plot2 = generate_plot(all, stay, c_op_acp, "Costs per patient: year 2021" , filter_year = 2021, ylabel = "Operational cost per patient", xlabel = "Admissions")
+    plot1 = generate_plot(CSH, in_days, avg_operational, "Costs per patient", ylabel = "Operational cost per patient", xlabel = "Inpatient days")
+    plot2 = generate_plot(CSH, in_days, avg_operational, "Costs per patient: year 2021" , filter_year = 2021, ylabel = "Operational cost per patient", xlabel = "Admissions")
     
     # B. Plot combined years and most recent (complete) year: Total costs
     # Arrange the plots in a grid
-    plot3 = generate_plot(all, stay, c_op, "Total costs", ylabel = "Operational costs", xlabel = "Admissions")
-    plot4 = generate_plot(all, stay, c_op, "Total costs: year 2021", filter_year = 2021, ylabel = "Operational costs", xlabel = "Admissions")
+    plot3 = generate_plot(CSH, in_days, operational, "Total costs", ylabel = "Operational costs", xlabel = "Inpatient days")
+    plot4 = generate_plot(CSH, in_days, operational, "Total costs: year 2021", filter_year = 2021, ylabel = "Operational costs", xlabel = "Admissions")
     
     # C. Plot Grid 
     grid = ggarrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2, common.legend = T, legend = "bottom")
     ggsave("stay_op.pdf", grid, limitsize = F, width = 22, height = 20,units = "cm")
     
-    ### 3.2 Admissions and staff costs -------------------------------------------
+    ### 3.2 Admissions and staff adjusted costs ----------------------------
     # A. Plot combined years and most recent (complete) year: Average Cost per patient
-    plot1 = generate_plot(all, stay, c_pess_acp, "Costs per patient", ylabel = "Staff cost per patient", xlabel = "Admissions")
-    plot2 = generate_plot(all, stay, c_pess_acp, "Costs per patient: year 2021", filter_year = 2021, ylabel = "Staff cost per patient", xlabel = "Admissions")
+    plot1 = generate_plot(CSH, in_days, avg_staff_adjusted, "Costs per patient", ylabel = "Staff cost per patient", xlabel = "Admissions")
+    plot2 = generate_plot(CSH, in_days, avg_staff_adjusted, "Costs per patient: year 2021", filter_year = 2021, ylabel = "Staff cost per patient", xlabel = "Admissions")
     
     # B. Plot combined years and most recent (complete) year: Total costs
     # Arrange the plots in a grid
-    plot3 = generate_plot(all, stay, c_pess, "Total costs", ylabel = "Staff costs", xlabel = "Admissions")
-    plot4 = generate_plot(all, stay, c_pess, "Total costs: year 2021", filter_year = 2021, ylabel = "Staff costs", xlabel = "Admissions")
+    plot3 = generate_plot(CSH, in_days, staff_adjusted, "Total costs", ylabel = "Staff costs", xlabel = "Admissions")
+    plot4 = generate_plot(CSH, in_days, staff_adjusted, "Total costs: year 2021", filter_year = 2021, ylabel = "Staff costs", xlabel = "Admissions")
     
     # C. Plot Grid 
     grid = ggarrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2, common.legend = T, legend = "bottom")
     ggsave("stay_pess.pdf", grid, limitsize = F, width = 22, height = 20,units = "cm")
     
-    ### 3.3 Admissions and staff adjusted costs ----------------------------------
+    ### 3.3 Admissions and staff costs -------------------------------------
     # A. Plot combined years and most recent (complete) year: Average Cost per patient
-    plot1 = generate_plot(all, stay, c_pess_a_acp, "Adjusted costs per patient", ylabel = "Staff adjusted cost per patient", xlabel = "Admissions")
-    plot2 = generate_plot(all, stay, c_pess_a_acp, "Adjusted costs per patient: year 2021", filter_year = 2021, ylabel = "Staff adjusted cost per patient", xlabel = "Admissions")
+    plot1 = generate_plot(CSH, in_days, avg_staff, "Adjusted costs per patient", ylabel = "Staff adjusted cost per patient", xlabel = "Admissions")
+    plot2 = generate_plot(CSH, in_days, avg_staff, "Adjusted costs per patient: year 2021", filter_year = 2021, ylabel = "Staff adjusted cost per patient", xlabel = "Admissions")
     
     # B. Plot combined years and most recent (complete) year: Total costs
     # Arrange the plots in a grid
-    plot3 = generate_plot(all, stay, c_pess_a, "Total adjusted costs", ylabel = "Staff adjusted costs", xlabel = "Admissions")
-    plot4 = generate_plot(all, stay, c_pess_a, "Total adjusted costs: year 2021", filter_year = 2021, ylabel = "Staff adjusted costs", xlabel = "Admissions")
+    plot3 = generate_plot(CSH, in_days, staff, "Total adjusted costs", ylabel = "Staff adjusted costs", xlabel = "Admissions")
+    plot4 = generate_plot(CSH, in_days, staff, "Total adjusted costs: year 2021", filter_year = 2021, ylabel = "Staff adjusted costs", xlabel = "Admissions")
     
     # C. Plot Grid 
     grid = ggarrange(plot1, plot2, plot3, plot4, nrow = 2, ncol = 2, common.legend = T, legend = "bottom")
     ggsave("stay_pess_a.pdf", grid, limitsize = F, width = 22, height = 20,units = "cm")
     
-  ## 4. Other plots ----------------------------------------------------------
+  ## 4. Other plots --------------------------------------------------------
   dir.create("others")
   setwd("others")
-    ### 4.1 Surgeries and operational costs -------------------------------------
+    ### 4.1 Surgeries and operational costs --------------------------------
     # A. Plot grid with all years for costs per patient
     # Create an empty list to store the plots
     plot_list <- list()
@@ -201,17 +201,17 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_op_acp, surg_total) |>
+      filtered_data = CSH |> select(year, region, avg_operational, surg) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(surg_total, c_op_acp)) +
+      current_plot = ggplot(filtered_data, aes(surg, avg_operational)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
       
       # Add the current plot to the list
-      plot_list[[year - 2014]] <- current_plot
+      plot_list[[year - 2014]] = current_plot
       
     }
     
@@ -227,11 +227,11 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_op, surg_total) |>
+      filtered_data <- CSH |> select(year, region, operational, surg) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(surg_total, c_op)) +
+      current_plot <- ggplot(filtered_data, aes(surg, operational)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
@@ -245,7 +245,7 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     grid_all = grid.arrange(grobs = plot_list, ncol = 3)
     ggsave("grid_surg_op.pdf", grid_all)
     
-    ### 4.2 Surgeries and staff costs -------------------------------------------
+    ### 4.2 Surgeries and staff costs --------------------------------------
     # A. Plot with all years for costs per patient
     # Create an empty list to store the plots
     plot_list <- list()
@@ -254,11 +254,11 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_pess_acp, surg_total) |>
+      filtered_data <- CSH |> select(year, region, avg_staff, surg) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(surg_total, c_pess_acp)) +
+      current_plot <- ggplot(filtered_data, aes(surg, avg_staff)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
@@ -279,11 +279,11 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_pess, surg_total) |>
+      filtered_data <- CSH |> select(year, region, staff, surg) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(surg_total, c_pess)) +
+      current_plot <- ggplot(filtered_data, aes(surg, staff)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
@@ -297,73 +297,73 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     grid_all <- grid.arrange(grobs = plot_list, ncol = 3)
     ggsave("grid_surg_pess.pdf", grid_all)
     
-    ### 4.3 Surgeries and staff adjusted costs ----------------------------------
+    ### 4.3 Surgeries and staff adjusted costs -----------------------------
     # A. Plot grid with all years for costs per patient
     # Create an empty list to store the plots
-    plot_list <- list()
+    plot_list = list()
     
     # Loop through each year from 2015 to 2020
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_pess_a_acp, surg_total) |>
+      filtered_data= CSH |> select(year, region, avg_staff_adjusted, surg) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(surg_total, c_pess_a_acp)) +
+      current_plot = ggplot(filtered_data, aes(surg, avg_staff_adjusted)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
       
       # Add the current plot to the list
-      plot_list[[year - 2014]] <- current_plot
+      plot_list[[year - 2014]] = current_plot
     }
     
     # Arrange the plots in a grid and save plot as pdf
-    grid_all <- grid.arrange(grobs = plot_list, ncol = 3)
+    grid_all = grid.arrange(grobs = plot_list, ncol = 3)
     ggsave("grid_surg_pess_acp.pdf", grid_all)
     
     # B. Plot grid with all years for total costs
     # Create an empty list to store the plots
-    plot_list <- list()
+    plot_list = list()
     
     # Loop through each year from 2015 to 2020
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_pess_a, surg_total) |>
+      filtered_data = CSH |> select(year, region, staff_adjusted, surg) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(surg_total, c_pess_a)) +
+      current_plot = ggplot(filtered_data, aes(surg, staff_adjusted)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
       
       # Add the current plot to the list
-      plot_list[[year - 2014]] <- current_plot
+      plot_list[[year - 2014]] = current_plot
       
     }
     
     # Arrange the plots in a grid and save plot as pdf
-    grid_all <- grid.arrange(grobs = plot_list, ncol = 3)
+    grid_all = grid.arrange(grobs = plot_list, ncol = 3)
     ggsave("grid_surg_pess.pdf", grid_all)
     
     
-    ### 4.4 Appointments and operational costs -------------------------------------
+    ### 4.4 Appointments and operational costs -----------------------------
     # A. Plot grid with all years for costs per patient
     # Create an empty list to store the plots
-    plot_list <- list()
+    plot_list = list()
     
     # Loop through each year from 2015 to 2020
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_op_acp, app) |>
+      filtered_data = CSH |> select(year, region, avg_operational, app) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(app, c_op_acp)) +
+      current_plot <- ggplot(filtered_data, aes(app, avg_operational)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
@@ -385,17 +385,17 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_op, app) |>
+      filtered_data = CSH |> select(year, region, operational, app) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(app, c_op)) +
+      current_plot <- ggplot(filtered_data, aes(app, operational)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
       
       # Add the current plot to the list
-      plot_list[[year - 2014]] <- current_plot
+      plot_list[[year - 2014]] = current_plot
       
     }
     
@@ -403,26 +403,26 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     grid_all = grid.arrange(grobs = plot_list, ncol = 3)
     ggsave("grid_app_op.pdf", grid_all)
     
-    ### 4.5 Appointments and staff costs -------------------------------------------
+    ### 4.5 Appointments and staff costs -----------------------------------
     # A. Plot grid with all years for costs per patient
     # Create an empty list to store the plots
-    plot_list <- list()
+    plot_list = list()
     
     # Loop through each year from 2015 to 2020
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_pess_acp, app) |>
+      filtered_data = CSH |> select(year, region, avg_staff, app) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(app, c_pess_acp)) +
+      current_plot = ggplot(filtered_data, aes(app, avg_staff)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
       
       # Add the current plot to the list
-      plot_list[[year - 2014]] <- current_plot
+      plot_list[[year - 2014]] = current_plot
     }
     
     # Arrange the plots in a grid and save plot as pdf
@@ -437,11 +437,11 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_pess, app) |>
+      filtered_data = CSH |> select(year, region, staff, app) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(app, c_pess)) +
+      current_plot = ggplot(filtered_data, aes(app, staff)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
@@ -455,26 +455,26 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     grid_all <- grid.arrange(grobs = plot_list, ncol = 3)
     ggsave("grid_app_pess.pdf", grid_all)
     
-    ### 4.6 Appointments and staff adjusted costs ----------------------------------
+    ### 4.6 Appointments and staff adjusted costs --------------------------
     # A. Plot grid with all years for costs per patient
     # Create an empty list to store the plots
-    plot_list <- list()
+    plot_list = list()
     
     # Loop through each year from 2015 to 2020
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_pess_a_acp, app) |>
+      filtered_data = CSH |> select(year, region, avg_staff_adjusted, app) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(app, c_pess_a_acp)) +
+      current_plot = ggplot(filtered_data, aes(app, avg_staff_adjusted)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
       
       # Add the current plot to the list
-      plot_list[[year - 2014]] <- current_plot
+      plot_list[[year - 2014]] = current_plot
     }
     
     # Arrange the plots in a grid and save plot as pdf
@@ -483,23 +483,23 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     
     # B. Plot grid with all years for total costs
     # Create an empty list to store the plots
-    plot_list <- list()
+    plot_list = list()
     
     # Loop through each year from 2015 to 2020
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_pess_a, app) |>
+      filtered_data = CSH |> select(year, region, staff_adjusted, app) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(app, c_pess_a)) +
+      current_plot = ggplot(filtered_data, aes(app, staff_adjusted)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
       
       # Add the current plot to the list
-      plot_list[[year - 2014]] <- current_plot
+      plot_list[[year - 2014]] = current_plot
       
     }
     
@@ -508,26 +508,26 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     ggsave("grid_app_a_pess.pdf", grid_all)
     
     
-    ### 4.7 Admissions and operational costs -------------------------------------
+    ### 4.7 In_days and operational costs ----------------------------------
     # A. Plot grid with all years for costs per patient
     # Create an empty list to store the plots
-    plot_list <- list()
+    plot_list = list()
     
     # Loop through each year from 2015 to 2020
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_op_acp, stay) |>
+      filtered_data = CSH |> select(year, region, avg_operational, in_days) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(stay, c_op_acp)) +
+      current_plot <- ggplot(filtered_data, aes(in_days, avg_operational)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
       
       # Add the current plot to the list
-      plot_list[[year - 2014]] <- current_plot
+      plot_list[[year - 2014]] = current_plot
       
     }
     
@@ -543,17 +543,17 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_op, stay) |>
+      filtered_data = CSH |> select(year, region, operational, in_days) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(stay, c_op)) +
+      current_plot = ggplot(filtered_data, aes(in_days, operational)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
       
       # Add the current plot to the list
-      plot_list[[year - 2014]] <- current_plot
+      plot_list[[year - 2014]] = current_plot
       
     }
     
@@ -561,30 +561,30 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     grid_all = grid.arrange(grobs = plot_list, ncol = 3)
     ggsave("grid_stay_op.pdf", grid_all)
     
-    ### 4.8 Admissions and staff costs -------------------------------------------
+    ### 4.8 In_days and staff costs ----------------------------------------
     # A. Plot grid with all years for costs per patient
     # Create an empty list to store the plots
-    plot_list <- list()
+    plot_list = list()
     
     # Loop through each year from 2015 to 2020
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_pess_acp, stay) |>
+      filtered_data = CSH |> select(year, region, avg_staff, in_days) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(stay, c_pess_acp)) +
+      current_plot = ggplot(filtered_data, aes(in_days, avg_staff)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
       
       # Add the current plot to the list
-      plot_list[[year - 2014]] <- current_plot
+      plot_list[[year - 2014]] = current_plot
     }
     
     # Arrange the plots in a grid and save plot as pdf
-    grid_all <- grid.arrange(grobs = plot_list, ncol = 3)
+    grid_all = grid.arrange(grobs = plot_list, ncol = 3)
     ggsave("grid_stay_pess_acp.pdf", grid_all)
     
     # B. Plot grid with all years for total costs
@@ -595,11 +595,11 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_pess, stay) |>
+      filtered_data = CSH |> select(year, region, staff, in_days) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(stay, c_pess)) +
+      current_plot = ggplot(filtered_data, aes(in_days, staff)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
@@ -613,7 +613,7 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     grid_all <- grid.arrange(grobs = plot_list, ncol = 3)
     ggsave("grid_stay_pess.pdf", grid_all)
     
-    ### 4.9 Admissions and staff adjusted costs ----------------------------------
+    ### 4.9 Admissions and staff adjusted costs ---------------------------
     # A. Plot grid with all years for costs per patient
     # Create an empty list to store the plots
     plot_list <- list()
@@ -622,21 +622,21 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_pess_a_acp, stay) |>
+      filtered_data = CSH |> select(year, region, avg_staff_adjusted, in_days) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(stay, c_pess_a_acp)) +
+      current_plot = ggplot(filtered_data, aes(in_days, avg_staff_adjusted)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
       
       # Add the current plot to the list
-      plot_list[[year - 2014]] <- current_plot
+      plot_list[[year - 2014]] = current_plot
     }
     
     # Arrange the plots in a grid and save plot as pdf
-    grid_all <- grid.arrange(grobs = plot_list, ncol = 3)
+    grid_all = grid.arrange(grobs = plot_list, ncol = 3)
     ggsave("grid_stay_pess_a_acp.pdf", grid_all)
     
     # B. Plot grid with all years for total costs
@@ -647,469 +647,620 @@ generate_plot <- function(data,volume,cost, title, filter_year = NULL, xlabel = 
     for (year in 2015:2020) {
       
       # Filter the data for the current year
-      filtered_data <- all |> select(year, region, c_pess_a, stay) |>
+      filtered_data = CSH |> select(year, region, staff_adjusted, in_days) |>
         filter(year == year)
       
       # Create a ggplot object with the filtered data
-      current_plot <- ggplot(filtered_data, aes(stay, c_pess_a)) +
+      current_plot = ggplot(filtered_data, aes(in_days, staff_adjusted)) +
         geom_point() +
         ggtitle(paste("Year:", year)) +
         theme(plot.title = element_text(hjust = 0.5))
       
       # Add the current plot to the list
-      plot_list[[year - 2014]] <- current_plot
+      plot_list[[year - 2014]] = current_plot
       
     }
     
     # Arrange the plots in a grid and save plot as pdf
-    grid_all <- grid.arrange(grobs = plot_list, ncol = 3)
+    grid_all = grid.arrange(grobs = plot_list, ncol = 3)
     ggsave("grid_stay_a_pess.pdf", grid_all)
     
 # Clear space -------------------------------------------------------------
-rm(plot1, plot2, plot3, plot4, plot_list, grid_all, grid, 
-   filtered_data, current_plot, year)
+rm(list = setdiff(ls(), c("CSH")))
 setwd("../..")
+
 # II. Summary Tables ------------------------------------------------------
-  ## 1.1 Costs per patient --------------------------------------------------
+dir.create("summary_tables")
+setwd("summary_tables")
+dir.create("1.per_year")
+setwd("1.per_year")
+  ## 1. Summary tables per year -------------------------------------------
+    ### 1.1 Costs per patient ---------------------------------------------
+    
+    # A. Create summary tables for each year using loop
+    # Create an empty list to store the summary tables
+    summary_list <- list()
+    
+    # Loop through each year from 2015 to 2020
+    for (year in 2015:2020) {
+      
+      # Filter the data for the current year
+      filtered_data = CSH |>
+        filter(year == year)
+      
+      # Calculate the summary statistics for variables DP
+      op_p_summary = filtered_data |>
+        summarise(variable = "average operational costs",
+                  mean = mean(avg_operational, na.rm = TRUE),
+                  sd = sd(avg_operational, na.rm = TRUE),
+                  obs = n(),
+                  min = min(avg_operational, na.rm = TRUE),
+                  max = max(avg_operational, na.rm = TRUE),
+                  q25 = quantile(avg_operational, 0.25, na.rm = TRUE),
+                  q75 = quantile(avg_operational, 0.75, na.rm = TRUE))
+      
+      pess_acp_summary = filtered_data |>
+        summarise(variable = "average staff costs",
+                  mean = mean(avg_staff, na.rm = TRUE),
+                  sd = sd(avg_staff, na.rm = TRUE),
+                  obs = n(),
+                  min = min(avg_staff, na.rm = TRUE),
+                  max = max(avg_staff, na.rm = TRUE),
+                  q25 = quantile(avg_staff, 0.25, na.rm = TRUE),
+                  q75 = quantile(avg_staff, 0.75, na.rm = TRUE))
+      
+      pess_a_acp_summary = filtered_data |>
+        summarise(variable = "avgerage staff adjusted costs",
+                  mean = mean(avg_staff_adjusted, na.rm = TRUE),
+                  sd = sd(avg_staff_adjusted, na.rm = TRUE),
+                  obs = n(),
+                  min = min(avg_staff_adjusted, na.rm = TRUE),
+                  max = max(avg_staff_adjusted, na.rm = TRUE),
+                  q25 = quantile(avg_staff_adjusted, 0.25, na.rm = TRUE),
+                  q75 = quantile(avg_staff_adjusted, 0.75, na.rm = TRUE))
+      
+      med_p_summary <- filtered_data |>
+        summarise(variable = "average medicine costs",
+                  mean = mean(avg_medicine, na.rm = TRUE),
+                  sd = sd(avg_medicine, na.rm = TRUE),
+                  obs = n(),
+                  min = min(avg_medicine, na.rm = TRUE),
+                  max = max(avg_medicine, na.rm = TRUE),
+                  q25 = quantile(avg_medicine, 0.25, na.rm = TRUE),
+                  q75 = quantile(avg_medicine, 0.75, na.rm = TRUE))
+      
+      mat_p_summary <- filtered_data |>
+        summarise(variable = "average materials costs",
+                  mean = mean(avg_materials, na.rm = TRUE),
+                  sd = sd(avg_materials, na.rm = TRUE),
+                  obs = n(),
+                  min = min(avg_materials, na.rm = TRUE),
+                  max = max(avg_materials, na.rm = TRUE),
+                  q25 = quantile(avg_materials, 0.25, na.rm = TRUE),
+                  q75 = quantile(avg_materials, 0.75, na.rm = TRUE))
+      
+      farm_p_summary <- filtered_data |>
+        summarise(variable = "average pharma costs",
+                  mean = mean(avg_pharma, na.rm = TRUE),
+                  sd = sd(avg_pharma, na.rm = TRUE),
+                  obs = n(),
+                  min = min(avg_pharma, na.rm = TRUE),
+                  max = max(avg_pharma, na.rm = TRUE),
+                  q25 = quantile(avg_pharma, 0.25, na.rm = TRUE),
+                  q75 = quantile(avg_pharma, 0.75, na.rm = TRUE))
+      
+      fse_p_summary <- filtered_data |>
+        summarise(variable = "average fse",
+                  mean = mean(avg_fse, na.rm = TRUE),
+                  sd = sd(avg_fse, na.rm = TRUE),
+                  obs = n(),
+                  min = min(avg_fse, na.rm = TRUE),
+                  max = max(avg_fse, na.rm = TRUE),
+                  q25 = quantile(avg_fse, 0.25, na.rm = TRUE),
+                  q75 = quantile(avg_fse, 0.75, na.rm = TRUE))
+  
+      # Combine the summary tables into a single table
+      summary_table = bind_rows(op_p_summary, pess_acp_summary, pess_a_acp_summary, farm_p_summary, 
+                                 mat_p_summary, med_p_summary, fse_p_summary)
+      
+      # Add the summary table to the list
+      summary_list[[year - 2014]] = summary_table
+      
+      # Save each summary table as a PDF file
+      pdf(paste0("costs_summary_table_acp", year, ".pdf"), width = 10, height = 4)
+      grid.table(summary_table, rows = NULL)
+      dev.off()
+  
+    }
+  
+    # B. Latex tables
+    dir.create("latex")
+    setwd("latex")
+    
+    # Loop for Latex tables
+    for (i in 1:length(summary_list)) {
+      summary_table_latex = xtable(summary_list[[i]], caption = paste("Summary Table average costs per patient", i+2014))
+      
+      # save file in working directory
+      file_name = paste0("summary_table_costs_acp_", i+2014,".tex")
+      file_path = file.path(getwd(), file_name)
+      
+      print(summary_table_latex, file = file_path, include.rownames = FALSE, caption.placement = "top")
+    }
+  
+    setwd("..")
+  
+    ### 1.2 Costs ---------------------------------------------------------
+    
+    # A. Create summary tables for each year using loop
+    # Create an empty list to store the summary tables
+    summary_list <- list()
+    
+    # Loop through each year from 2015 to 2020
+    for (year in 2015:2020) {
+      
+      # Filter the data for the current year
+      filtered_data = CSH |>
+        filter(year == year)
+      
+      # Calculate the summary statistics for variables DP
+      op_summary <- filtered_data |>
+        summarise(variable = "operational costs",
+                  mean = mean(operational, na.rm = TRUE),
+                  sd = sd(operational, na.rm = TRUE),
+                  obs = n(),
+                  min = min(operational, na.rm = TRUE),
+                  max = max(operational, na.rm = TRUE),
+                  q25 = quantile(operational, 0.25, na.rm = TRUE),
+                  q75 = quantile(operational, 0.75, na.rm = TRUE))
+      
+      pess_summary <- filtered_data |>
+        summarise(variable = "staff costs",
+                  mean = mean(staff, na.rm = TRUE),
+                  sd = sd(staff, na.rm = TRUE),
+                  obs = n(),
+                  min = min(staff, na.rm = TRUE),
+                  max = max(staff, na.rm = TRUE),
+                  q25 = quantile(staff, 0.25, na.rm = TRUE),
+                  q75 = quantile(staff, 0.75, na.rm = TRUE))
+      
+      pess_a_summary = filtered_data |>
+        summarise(variable = "staff adjusted costs",
+                  mean = mean(staff_adjusted, na.rm = TRUE),
+                  sd = sd(staff_adjusted, na.rm = TRUE),
+                  obs = n(),
+                  min = min(staff_adjusted, na.rm = TRUE),
+                  max = max(staff_adjusted, na.rm = TRUE),
+                  q25 = quantile(staff_adjusted, 0.25, na.rm = TRUE),
+                  q75 = quantile(staff_adjusted, 0.75, na.rm = TRUE))
+      
+      med_summary = filtered_data |>
+        summarise(variable = "medicine costs",
+                  mean = mean(medicine, na.rm = TRUE),
+                  sd = sd(medicine, na.rm = TRUE),
+                  obs = n(),
+                  min = min(medicine, na.rm = TRUE),
+                  max = max(medicine, na.rm = TRUE),
+                  q25 = quantile(medicine, 0.25, na.rm = TRUE),
+                  q75 = quantile(medicine, 0.75, na.rm = TRUE))
+      
+      mat_summary <- filtered_data |>
+        summarise(variable = "material costs",
+                  mean = mean(materials, na.rm = TRUE),
+                  sd = sd(materials, na.rm = TRUE),
+                  obs = n(),
+                  min = min(materials, na.rm = TRUE),
+                  max = max(materials, na.rm = TRUE),
+                  q25 = quantile(materials, 0.25, na.rm = TRUE),
+                  q75 = quantile(materials, 0.75, na.rm = TRUE))
+      
+      farm_summary <- filtered_data |>
+        summarise(variable = "pharmaceutical costs",
+                  mean = mean(pharma, na.rm = TRUE),
+                  sd = sd(pharma, na.rm = TRUE),
+                  obs = n(),
+                  min = min(pharma, na.rm = TRUE),
+                  max = max(pharma, na.rm = TRUE),
+                  q25 = quantile(pharma, 0.25, na.rm = TRUE),
+                  q75 = quantile(pharma, 0.75, na.rm = TRUE))
+      
+      fse_summary <- filtered_data |>
+        summarise(variable = "fse costs",
+                  mean = mean(fse, na.rm = TRUE),
+                  sd = sd(fse, na.rm = TRUE),
+                  obs = n(),
+                  min = min(fse, na.rm = TRUE),
+                  max = max(fse, na.rm = TRUE),
+                  q25 = quantile(fse, 0.25, na.rm = TRUE),
+                  q75 = quantile(fse, 0.75, na.rm = TRUE))
+      
+      # Combine the summary tables into a single table
+      summary_table = bind_rows(op_summary, pess_summary, pess_a_summary, farm_summary, 
+                                mat_summary, med_summary, fse_summary)
+      
+      # Add the summary table to the list
+      summary_list[[year - 2014]] = summary_table
+      
+      # Save each summary table as a PDF file
+      pdf(paste0("costs_summary_table_", year, ".pdf"), width = 10, height = 4)
+      grid.table(summary_table, rows = NULL)
+      dev.off()
+      
+    }
+    
+    # B. Latex tables
+    setwd("latex")
+    
+    # Loop for Latex tables
+    for (i in 1:length(summary_list)) {
+      summary_table_latex = xtable(summary_list[[i]], caption = paste("Summary Table average costs per patient", i+2014))
+      
+      # save file in working directory
+      file_name = paste0("summary_table_costs", i+2014,".tex")
+      file_path = file.path(getwd(), file_name)
+      
+      print(summary_table_latex, file = file_path, include.rownames = FALSE, caption.placement = "top")
+    }
+    
+    setwd("..")
+    ### 1.3 Volume -------------------------------------------------------------
+    
+    # Create an empty list to store the summary tables
+    summary_list <- list()
+    
+    # Loop through each year from 2015 to 2020
+    for (year in 2015:2020) {
+      
+      # Filter the data for the current year
+      filtered_data <- CSH |>
+        filter(year == year)
+      
+      # Calculate the summary statistics for variables DP
+      beds_summary <- filtered_data |>
+        summarise(variable = "beds",
+                  mean = mean(beds, na.rm = TRUE),
+                  sd = sd(beds, na.rm = TRUE),
+                  obs = n(),
+                  min = min(beds, na.rm = TRUE),
+                  max = max(beds, na.rm = TRUE),
+                  q25 = quantile(beds, 0.25, na.rm = TRUE),
+                  q75 = quantile(beds, 0.75, na.rm = TRUE))
+      
+      beds_summary <- filtered_data |>
+        summarise(variable = "RO",
+                  mean = mean(RO, na.rm = TRUE),
+                  sd = sd(RO, na.rm = TRUE),
+                  obs = n(),
+                  min = min(RO, na.rm = TRUE),
+                  max = max(RO, na.rm = TRUE),
+                  q25 = quantile(RO, 0.25, na.rm = TRUE),
+                  q75 = quantile(RO, 0.75, na.rm = TRUE))
+      
+      mean_days_surg_summary <- filtered_data |>
+        summarise(variable = "mean_wait_summary",
+                  mean = mean(mean_wait, na.rm = TRUE),
+                  sd = sd(mean_wait, na.rm = TRUE),
+                  obs = n(),
+                  min = min(mean_wait, na.rm = TRUE),
+                  max = max(mean_wait, na.rm = TRUE),
+                  q25 = quantile(mean_wait, 0.25, na.rm = TRUE),
+                  q75 = quantile(mean_wait, 0.75, na.rm = TRUE))
+      
+      scheduled_sur_summary <- filtered_data |>
+        summarise(variable = "scheduled_days",
+                  mean = mean(scheduled_sur, na.rm = TRUE),
+                  sd = sd(scheduled_sur, na.rm = TRUE),
+                  obs = n(),
+                  min = min(scheduled_sur, na.rm = TRUE),
+                  max = max(scheduled_sur, na.rm = TRUE),
+                  q25 = quantile(scheduled_sur, 0.25, na.rm = TRUE),
+                  q75 = quantile(scheduled_sur, 0.75, na.rm = TRUE))
+      
+      mean_wait_summary <- filtered_data |>
+        summarise(variable = "mean_wait",
+                  mean = mean(mean_wait, na.rm = TRUE),
+                  sd = sd(mean_wait, na.rm = TRUE),
+                  obs = n(),
+                  min = min(mean_wait, na.rm = TRUE),
+                  max = max(mean_wait, na.rm = TRUE),
+                  q25 = quantile(mean_wait, 0.25, na.rm = TRUE),
+                  q75 = quantile(mean_wait, 0.75, na.rm = TRUE))
+      
+      app_summary <- filtered_data |>
+        summarise(variable = "app",
+                  mean = mean(app, na.rm = TRUE),
+                  sd = sd(app, na.rm = TRUE),
+                  obs = n(),
+                  min = min(app, na.rm = TRUE),
+                  max = max(app, na.rm = TRUE),
+                  q25 = quantile(app, 0.25, na.rm = TRUE),
+                  q75 = quantile(app, 0.75, na.rm = TRUE))
+      
+      discharge_summary <- filtered_data |>
+        summarise(variable = "patient discharge",
+                  mean = mean(patient_dis, na.rm = TRUE),
+                  sd = sd(patient_dis, na.rm = TRUE),
+                  obs = n(),
+                  min = min(patient_dis, na.rm = TRUE),
+                  max = max(patient_dis, na.rm = TRUE),
+                  q25 = quantile(patient_dis, 0.25, na.rm = TRUE),
+                  q75 = quantile(patient_dis, 0.75, na.rm = TRUE))
+      
+      surg_p_summary <- filtered_data |>
+        summarise(variable = "surg_p",
+                  mean = mean(surg_p, na.rm = TRUE),
+                  sd = sd(surg_p, na.rm = TRUE),
+                  obs = n(),
+                  min = min(surg_p, na.rm = TRUE),
+                  max = max(surg_p, na.rm = TRUE),
+                  q25 = quantile(surg_p, 0.25, na.rm = TRUE),
+                  q75 = quantile(surg_p, 0.75, na.rm = TRUE))
+      
+      surg_u_summary <- filtered_data |>
+        summarise(variable = "surg_u",
+                  mean = mean(surg_u, na.rm = TRUE),
+                  sd = sd(surg_u, na.rm = TRUE),
+                  obs = n(),
+                  min = min(surg_u, na.rm = TRUE),
+                  max = max(surg_u, na.rm = TRUE),
+                  q25 = quantile(surg_u, 0.25, na.rm = TRUE),
+                  q75 = quantile(surg_u, 0.75, na.rm = TRUE))
+      
+      surg_a_summary <- filtered_data |>
+        summarise(variable = "surg_a",
+                  mean = mean(surg_a, na.rm = TRUE),
+                  sd = sd(surg_a, na.rm = TRUE),
+                  obs = n(),
+                  min = min(surg_a, na.rm = TRUE),
+                  max = max(surg_a, na.rm = TRUE),
+                  q25 = quantile(surg_a, 0.25, na.rm = TRUE),
+                  q75 = quantile(surg_a, 0.75, na.rm = TRUE))
+      
+      surg_c_summary <- filtered_data |>
+        summarise(variable = "surg_c",
+                  mean = mean(surg_c, na.rm = TRUE),
+                  sd = sd(surg_c, na.rm = TRUE),
+                  obs = n(),
+                  min = min(surg_c, na.rm = TRUE),
+                  max = max(surg_c, na.rm = TRUE),
+                  q25 = quantile(surg_c, 0.25, na.rm = TRUE),
+                  q75 = quantile(surg_c, 0.75, na.rm = TRUE))
+      
+      surg_total_summary <- filtered_data |>
+        summarise(variable = "surgerie",
+                  mean = mean(surg, na.rm = TRUE),
+                  sd = sd(surg, na.rm = TRUE),
+                  obs = n(),
+                  min = min(surg, na.rm = TRUE),
+                  max = max(surg, na.rm = TRUE),
+                  q25 = quantile(surg, 0.25, na.rm = TRUE),
+                  q75 = quantile(surg, 0.75, na.rm = TRUE))
+      
+      
+      # Combine the summary tables into a single table
+      summary_table <- bind_rows(surg_total_summary, surg_c_summary, surg_a_summary,
+                                 surg_u_summary, surg_p_summary,
+                                 discharge_summary, app_summary,
+                                 mean_wait_summary, scheduled_sur_summary, 
+                                 mean_days_surg_summary, beds_summary)
+      
+      # Add the summary table to the list
+      summary_list[[year - 2014]] <- summary_table
+      
+      
+      # Save the summary table as a PDF file
+      pdf(paste0("vol_summary_table_", year, ".pdf"), width = 10, height = 4)
+      grid.table(summary_table, rows = NULL)
+      dev.off()
+      
+    }
+    
+    # B. Latex tables
+    setwd("latex")
+    
+    # Loop for Latex tables
+    for (i in 1:length(summary_list)) {
+      summary_table_latex = xtable(summary_list[[i]], caption = paste("Summary Table average costs per patient", i+2014))
+      
+      # save file in working directory
+      file_name = paste0("summary_table_volume", i+2014,".tex")
+      file_path = file.path(getwd(), file_name)
+      
+      print(summary_table_latex, file = file_path, include.rownames = FALSE, caption.placement = "top")
+    }
+  
+    setwd("..")
+  
+  ## 2. Summary tables per Azores/Madeira ---------------------------------
+  dir.create("2.Portugal_Islands")
+  setwd("2.Portugal_Islands")
   
   # A. Create summary tables for each year using loop
   # Create an empty list to store the summary tables
-  summary_list <- list()
+  summary_list = list()
   
-  # Loop through each year from 2015 to 2020
-  for (year in 2015:2020) {
+  for (azo in 0:1) {
     
     # Filter the data for the current year
-    filtered_data <- all |>
-      filter(year == year)
+    filtered_data <- CSH |>
+      filter(azo == azo)
     
-    # Calculate the summary statistics for variables DP
-    op_p_summary <- filtered_data |>
-      summarise(variable = "c_op_acp",
-                mean = mean(c_op_acp, na.rm = TRUE),
-                sd = sd(c_op_acp, na.rm = TRUE),
-                obs = n(),
-                min = min(c_op_acp, na.rm = TRUE),
-                max = max(c_op_acp, na.rm = TRUE),
-                q25 = quantile(c_op_acp, 0.25, na.rm = TRUE),
-                q75 = quantile(c_op_acp, 0.75, na.rm = TRUE))
+    # Calculate the summary statistics for variables Costs
+    operational_summary = filtered_data |>
+      summarise(variable = "Operational Costs",
+                mean = mean(operational, na.rm = TRUE),
+                sd = sd(operational, na.rm = TRUE),
+                min = min(operational, na.rm = TRUE),
+                max = max(operational, na.rm = TRUE),
+                q25 = quantile(operational, 0.25, na.rm = TRUE),
+                q75 = quantile(operational, 0.75, na.rm = TRUE))
     
-    pess_acp_summary <- filtered_data |>
-      summarise(variable = "c_pess_acp",
-                mean = mean(c_pess_acp, na.rm = TRUE),
-                sd = sd(c_pess_acp, na.rm = TRUE),
-                obs = n(),
-                min = min(c_pess_acp, na.rm = TRUE),
-                max = max(c_pess_acp, na.rm = TRUE),
-                q25 = quantile(c_pess_acp, 0.25, na.rm = TRUE),
-                q75 = quantile(c_pess_acp, 0.75, na.rm = TRUE))
+    operational_ACSS_summary = filtered_data |>
+      summarise(variable = "Operational ACSS Costs",
+                mean = mean(operational_ACSS, na.rm = TRUE),
+                sd = sd(operational_ACSS, na.rm = TRUE),
+                min = min(operational_ACSS, na.rm = TRUE),
+                max = max(operational_ACSS, na.rm = TRUE),
+                q25 = quantile(operational_ACSS, 0.25, na.rm = TRUE),
+                q75 = quantile(operational_ACSS, 0.75, na.rm = TRUE))
     
-    pess_a_acp_summary <- filtered_data |>
-      summarise(variable = "c_pess_a_acp",
-                mean = mean(c_pess_a_acp, na.rm = TRUE),
-                sd = sd(c_pess_a_acp, na.rm = TRUE),
-                obs = n(),
-                min = min(c_pess_a_acp, na.rm = TRUE),
-                max = max(c_pess_a_acp, na.rm = TRUE),
-                q25 = quantile(c_pess_a_acp, 0.25, na.rm = TRUE),
-                q75 = quantile(c_pess_a_acp, 0.75, na.rm = TRUE))
+    staff_summary = filtered_data |>
+      summarise(variable = "Staff Costs",
+                mean = mean(staff, na.rm = TRUE),
+                sd = sd(staff, na.rm = TRUE),
+                min = min(staff, na.rm = TRUE),
+                max = max(staff, na.rm = TRUE),
+                q25 = quantile(staff, 0.25, na.rm = TRUE),
+                q75 = quantile(staff, 0.75, na.rm = TRUE))
     
-    med_p_summary <- filtered_data |>
-      summarise(variable = "c_med_acp",
-                mean = mean(c_med_acp, na.rm = TRUE),
-                sd = sd(c_med_acp, na.rm = TRUE),
-                obs = n(),
-                min = min(c_med_acp, na.rm = TRUE),
-                max = max(c_med_acp, na.rm = TRUE),
-                q25 = quantile(c_med_acp, 0.25, na.rm = TRUE),
-                q75 = quantile(c_med_acp, 0.75, na.rm = TRUE))
+    staff_adj_summary = filtered_data |>
+      summarise(variable = "Staff Adjusted Costs",
+                mean = mean(staff_adjusted, na.rm = TRUE),
+                sd = sd(staff_adjusted, na.rm = TRUE),
+                min = min(staff_adjusted, na.rm = TRUE),
+                max = max(staff_adjusted, na.rm = TRUE),
+                q25 = quantile(staff_adjusted, 0.25, na.rm = TRUE),
+                q75 = quantile(staff_adjusted, 0.75, na.rm = TRUE))
     
-    mat_p_summary <- filtered_data |>
-      summarise(variable = "c_mat_acp",
-                mean = mean(c_mat_acp, na.rm = TRUE),
-                sd = sd(c_mat_acp, na.rm = TRUE),
-                obs = n(),
-                min = min(c_mat_acp, na.rm = TRUE),
-                max = max(c_mat_acp, na.rm = TRUE),
-                q25 = quantile(c_mat_acp, 0.25, na.rm = TRUE),
-                q75 = quantile(c_mat_acp, 0.75, na.rm = TRUE))
+    pharma_summary = filtered_data |>
+      summarise(variable = "Pharmaceuticals Cost",
+                mean = mean(pharma, na.rm = TRUE),
+                sd = sd(pharma, na.rm = TRUE),
+                min = min(pharma, na.rm = TRUE),
+                max = max(pharma, na.rm = TRUE),
+                q25 = quantile(pharma, 0.25, na.rm = TRUE),
+                q75 = quantile(pharma, 0.75, na.rm = TRUE))
     
-    farm_p_summary <- filtered_data |>
-      summarise(variable = "c_farm_acp",
-                mean = mean(c_farm_acp, na.rm = TRUE),
-                sd = sd(c_farm_acp, na.rm = TRUE),
-                obs = n(),
-                min = min(c_farm_acp, na.rm = TRUE),
-                max = max(c_farm_acp, na.rm = TRUE),
-                q25 = quantile(c_farm_acp, 0.25, na.rm = TRUE),
-                q75 = quantile(c_farm_acp, 0.75, na.rm = TRUE))
+    medicine_summary = filtered_data |>
+      summarise(variable = "Medicine Cost",
+                mean = mean(medicine, na.rm = TRUE),
+                sd = sd(medicine, na.rm = TRUE),
+                min = min(medicine, na.rm = TRUE),
+                max = max(medicine, na.rm = TRUE),
+                q25 = quantile(medicine, 0.25, na.rm = TRUE),
+                q75 = quantile(medicine, 0.75, na.rm = TRUE))
     
-    fse_p_summary <- filtered_data |>
-      summarise(variable = "c_fse_acp",
-                mean = mean(c_fse_acp, na.rm = TRUE),
-                sd = sd(c_fse_acp, na.rm = TRUE),
-                obs = n(),
-                min = min(c_fse_acp, na.rm = TRUE),
-                max = max(c_fse_acp, na.rm = TRUE),
-                q25 = quantile(c_fse_acp, 0.25, na.rm = TRUE),
-                q75 = quantile(c_fse_acp, 0.75, na.rm = TRUE))
-
+    fse_summary = filtered_data |>
+      summarise(variable = "FSE Costs",
+                mean = mean(fse, na.rm = TRUE),
+                sd = sd(fse, na.rm = TRUE),
+                min = min(fse, na.rm = TRUE),
+                max = max(fse, na.rm = TRUE),
+                q25 = quantile(fse, 0.25, na.rm = TRUE),
+                q75 = quantile(fse, 0.75, na.rm = TRUE))
+    
+    materials_summary = filtered_data |>
+      summarise(variable = "Materials Costs",
+                mean = mean(materials, na.rm = TRUE),
+                sd = sd(materials, na.rm = TRUE),
+                min = min(materials, na.rm = TRUE),
+                max = max(materials, na.rm = TRUE),
+                q25 = quantile(materials, 0.25, na.rm = TRUE),
+                q75 = quantile(materials, 0.75, na.rm = TRUE))
+    
+    # Calculate the summary statistics for variables Volume
+    in_days_summary = filtered_data |>
+      summarise(variable = "Inpatient days",
+                mean = mean(in_days, na.rm = TRUE),
+                sd = sd(in_days, na.rm = TRUE),
+                min = min(in_days, na.rm = TRUE),
+                max = max(in_days, na.rm = TRUE),
+                q25 = quantile(in_days, 0.25, na.rm = TRUE),
+                q75 = quantile(in_days, 0.75, na.rm = TRUE))
+    
+    surge_summary = filtered_data |>
+      summarise(variable = "Surgeries",
+                mean = mean(surg, na.rm = TRUE),
+                sd = sd(surg, na.rm = TRUE),
+                min = min(surg, na.rm = TRUE),
+                max = max(surg, na.rm = TRUE),
+                q25 = quantile(surg, 0.25, na.rm = TRUE),
+                q75 = quantile(surg, 0.75, na.rm = TRUE))
+    
+    app_summary = filtered_data |>
+      summarise(variable = "Appointments",
+                mean = mean(app, na.rm = TRUE),
+                sd = sd(app, na.rm = TRUE),
+                min = min(app, na.rm = TRUE),
+                max = max(app, na.rm = TRUE),
+                q25 = quantile(app, 0.25, na.rm = TRUE),
+                q75 = quantile(app, 0.75, na.rm = TRUE))
+    
+    urge_summary = filtered_data |>
+      summarise(variable = "Urgencies",
+                mean = mean(urge, na.rm = TRUE),
+                sd = sd(urge, na.rm = TRUE),
+                min = min(urge, na.rm = TRUE),
+                max = max(urge, na.rm = TRUE),
+                q25 = quantile(urge, 0.25, na.rm = TRUE),
+                q75 = quantile(urge, 0.75, na.rm = TRUE))
+    
+    RO_summary = filtered_data |>
+      summarise(variable = "Rate of Occupancy",
+                mean = mean(RO, na.rm = TRUE),
+                sd = sd(RO, na.rm = TRUE),
+                min = min(RO, na.rm = TRUE),
+                max = max(RO, na.rm = TRUE),
+                q25 = quantile(RO, 0.25, na.rm = TRUE),
+                q75 = quantile(RO, 0.75, na.rm = TRUE))
+    
+    beds_summary = filtered_data |>
+      summarise(variable = "Beds",
+                mean = mean(beds, na.rm = TRUE),
+                sd = sd(beds, na.rm = TRUE),
+                min = min(beds, na.rm = TRUE),
+                max = max(beds, na.rm = TRUE),
+                q25 = quantile(beds, 0.25, na.rm = TRUE),
+                q75 = quantile(beds, 0.75, na.rm = TRUE))
+    
+    wait_days_summary = filtered_data |>
+      summarise(variable = "Mean Wait for Surgeries",
+                mean = mean(mean_wait, na.rm = TRUE),
+                sd = sd(mean_wait, na.rm = TRUE),
+                min = min(mean_wait, na.rm = TRUE),
+                max = max(mean_wait, na.rm = TRUE),
+                q25 = quantile(mean_wait, 0.25, na.rm = TRUE),
+                q75 = quantile(mean_wait, 0.75, na.rm = TRUE))
+    
     # Combine the summary tables into a single table
-    summary_table = bind_rows(op_p_summary, pess_acp_summary, pess_a_acp_summary, farm_p_summary, 
-                               mat_p_summary, med_p_summary, fse_p_summary)
+    summary_table = bind_rows(operational_summary, operational_ACSS_summary, 
+                              staff_adj_summary, staff_summary, pharma_summary,
+                              medicine_summary, materials_summary, fse_summary, 
+                              app_summary, surge_summary, in_days_summary,
+                              urge_summary,RO_summary ,beds_summary, wait_days_summary)
     
     # Add the summary table to the list
-    summary_list[[year - 2014]] = summary_table
+    summary_list[[azo+1]] = summary_table
     
     # Save each summary table as a PDF file
-    pdf(paste0("costs_summary_table_acp", year, ".pdf"), width = 10, height = 4)
+    pdf(paste0("summary_table_", azo, ".pdf"), width = 12, height = 6)
     grid.table(summary_table, rows = NULL)
     dev.off()
-
   }
-
+  
   # B. Latex tables
   dir.create("latex")
   setwd("latex")
   
   # Loop for Latex tables
   for (i in 1:length(summary_list)) {
-    summary_table_latex = xtable(summary_list[[i]], caption = paste("Summary Table average costs per patient", i+2014))
+    if (i == 1) {
+      caption = "Summary table Azores"
+    } else if (i == 0) {
+      caption = "Summary table Portugal_Continent"
+    }
+    
+    summary_table_latex = xtable(summary_list[[i]], caption = caption)
     
     # save file in working directory
-    file_name = paste0("summary_table_costs_acp_", i+2014,".tex")
-    file_path = file.path(getwd(), file_name)
-    
-    print(summary_table_latex, file = file_path, include.rownames = FALSE, caption.placement = "top")
-  }
-
-  setwd("..")
-
-  ## 1.2 Costs ---------------------------------------------------------------
-  
-  # A. Create summary tables for each year using loop
-  # Create an empty list to store the summary tables
-  summary_list <- list()
-  
-  # Loop through each year from 2015 to 2020
-  for (year in 2015:2020) {
-    
-    # Filter the data for the current year
-    filtered_data <- all |>
-      filter(year == year)
-    
-    # Calculate the summary statistics for variables DP
-    op_summary <- filtered_data |>
-      summarise(variable = "c_op",
-                mean = mean(c_op, na.rm = TRUE),
-                sd = sd(c_op, na.rm = TRUE),
-                obs = n(),
-                min = min(c_op, na.rm = TRUE),
-                max = max(c_op, na.rm = TRUE),
-                q25 = quantile(c_op, 0.25, na.rm = TRUE),
-                q75 = quantile(c_op, 0.75, na.rm = TRUE))
-    
-    pess_summary <- filtered_data |>
-      summarise(variable = "c_pess",
-                mean = mean(c_pess, na.rm = TRUE),
-                sd = sd(c_pess, na.rm = TRUE),
-                obs = n(),
-                min = min(c_pess, na.rm = TRUE),
-                max = max(c_pess, na.rm = TRUE),
-                q25 = quantile(c_pess, 0.25, na.rm = TRUE),
-                q75 = quantile(c_pess, 0.75, na.rm = TRUE))
-    
-    pess_a_summary <- filtered_data |>
-      summarise(variable = "c_pess_a",
-                mean = mean(c_pess_a, na.rm = TRUE),
-                sd = sd(c_pess_a, na.rm = TRUE),
-                obs = n(),
-                min = min(c_pess_a, na.rm = TRUE),
-                max = max(c_pess_a, na.rm = TRUE),
-                q25 = quantile(c_pess_a, 0.25, na.rm = TRUE),
-                q75 = quantile(c_pess_a, 0.75, na.rm = TRUE))
-    
-    med_summary <- filtered_data |>
-      summarise(variable = "c_med",
-                mean = mean(c_med, na.rm = TRUE),
-                sd = sd(c_med, na.rm = TRUE),
-                obs = n(),
-                min = min(c_med, na.rm = TRUE),
-                max = max(c_med, na.rm = TRUE),
-                q25 = quantile(c_med, 0.25, na.rm = TRUE),
-                q75 = quantile(c_med, 0.75, na.rm = TRUE))
-    
-    mat_summary <- filtered_data |>
-      summarise(variable = "c_mat",
-                mean = mean(c_mat, na.rm = TRUE),
-                sd = sd(c_mat, na.rm = TRUE),
-                obs = n(),
-                min = min(c_mat, na.rm = TRUE),
-                max = max(c_mat, na.rm = TRUE),
-                q25 = quantile(c_mat, 0.25, na.rm = TRUE),
-                q75 = quantile(c_mat, 0.75, na.rm = TRUE))
-    
-    farm_summary <- filtered_data |>
-      summarise(variable = "c_farm",
-                mean = mean(c_farm, na.rm = TRUE),
-                sd = sd(c_farm, na.rm = TRUE),
-                obs = n(),
-                min = min(c_farm, na.rm = TRUE),
-                max = max(c_farm, na.rm = TRUE),
-                q25 = quantile(c_farm, 0.25, na.rm = TRUE),
-                q75 = quantile(c_farm, 0.75, na.rm = TRUE))
-    
-    fse_summary <- filtered_data |>
-      summarise(variable = "c_fse",
-                mean = mean(c_fse, na.rm = TRUE),
-                sd = sd(c_fse, na.rm = TRUE),
-                obs = n(),
-                min = min(c_fse, na.rm = TRUE),
-                max = max(c_fse, na.rm = TRUE),
-                q25 = quantile(c_fse, 0.25, na.rm = TRUE),
-                q75 = quantile(c_fse, 0.75, na.rm = TRUE))
-    
-    # Combine the summary tables into a single table
-    summary_table = bind_rows(op_summary, pess_summary, pess_a_summary, farm_summary, 
-                              mat_summary, med_summary, fse_summary)
-    
-    # Add the summary table to the list
-    summary_list[[year - 2014]] = summary_table
-    
-    # Save each summary table as a PDF file
-    pdf(paste0("costs_summary_table_", year, ".pdf"), width = 10, height = 4)
-    grid.table(summary_table, rows = NULL)
-    dev.off()
-    
-  }
-  
-  # B. Latex tables
-  setwd("latex")
-  
-  # Loop for Latex tables
-  for (i in 1:length(summary_list)) {
-    summary_table_latex = xtable(summary_list[[i]], caption = paste("Summary Table average costs per patient", i+2014))
-    
-    # save file in working directory
-    file_name = paste0("summary_table_costs", i+2014,".tex")
+    file_name = paste0("summary_table", i,".tex")
     file_path = file.path(getwd(), file_name)
     
     print(summary_table_latex, file = file_path, include.rownames = FALSE, caption.placement = "top")
   }
   
-  setwd("..")
-  ## 1.3 Volume -------------------------------------------------------------
-  
-  # Create an empty list to store the summary tables
-  summary_list <- list()
-  
-  # Loop through each year from 2015 to 2020
-  for (year in 2015:2020) {
-    
-    # Filter the data for the current year
-    filtered_data <- all |>
-      filter(year == year)
-    
-    # Calculate the summary statistics for variables DP
-    beds_summary <- filtered_data |>
-      summarise(variable = "beds",
-                mean = mean(beds, na.rm = TRUE),
-                sd = sd(beds, na.rm = TRUE),
-                obs = n(),
-                min = min(beds, na.rm = TRUE),
-                max = max(beds, na.rm = TRUE),
-                q25 = quantile(beds, 0.25, na.rm = TRUE),
-                q75 = quantile(beds, 0.75, na.rm = TRUE))
-    
-    
-    mean_days_surg_summary <- filtered_data |>
-      summarise(variable = "mean_days_surg_summary",
-                mean = mean(mean_days_surg, na.rm = TRUE),
-                sd = sd(mean_days_surg, na.rm = TRUE),
-                obs = n(),
-                min = min(mean_days_surg, na.rm = TRUE),
-                max = max(mean_days_surg, na.rm = TRUE),
-                q25 = quantile(mean_days_surg, 0.25, na.rm = TRUE),
-                q75 = quantile(mean_days_surg, 0.75, na.rm = TRUE))
-    
-    scheduled_sur_summary <- filtered_data |>
-      summarise(variable = "scheduled_days",
-                mean = mean(scheduled_sur, na.rm = TRUE),
-                sd = sd(scheduled_sur, na.rm = TRUE),
-                obs = n(),
-                min = min(scheduled_sur, na.rm = TRUE),
-                max = max(scheduled_sur, na.rm = TRUE),
-                q25 = quantile(scheduled_sur, 0.25, na.rm = TRUE),
-                q75 = quantile(scheduled_sur, 0.75, na.rm = TRUE))
-    
-    
-    mean_wait_summary <- filtered_data |>
-      summarise(variable = "mean_wait",
-                mean = mean(mean_wait, na.rm = TRUE),
-                sd = sd(mean_wait, na.rm = TRUE),
-                obs = n(),
-                min = min(mean_wait, na.rm = TRUE),
-                max = max(mean_wait, na.rm = TRUE),
-                q25 = quantile(mean_wait, 0.25, na.rm = TRUE),
-                q75 = quantile(mean_wait, 0.75, na.rm = TRUE))
-    
-    app_summary <- filtered_data |>
-      summarise(variable = "app",
-                mean = mean(app, na.rm = TRUE),
-                sd = sd(app, na.rm = TRUE),
-                obs = n(),
-                min = min(app, na.rm = TRUE),
-                max = max(app, na.rm = TRUE),
-                q25 = quantile(app, 0.25, na.rm = TRUE),
-                q75 = quantile(app, 0.75, na.rm = TRUE))
-    
-    f_app_summary <- filtered_data |>
-      summarise(variable = "f_app",
-                mean = mean(f_app, na.rm = TRUE),
-                sd = sd(f_app, na.rm = TRUE),
-                obs = n(),
-                min = min(f_app, na.rm = TRUE),
-                max = max(f_app, na.rm = TRUE),
-                q25 = quantile(f_app, 0.25, na.rm = TRUE),
-                q75 = quantile(f_app, 0.75, na.rm = TRUE))
-    
-    discharge_summary <- filtered_data |>
-      summarise(variable = "discharge",
-                mean = mean(discharge, na.rm = TRUE),
-                sd = sd(discharge, na.rm = TRUE),
-                obs = n(),
-                min = min(discharge, na.rm = TRUE),
-                max = max(discharge, na.rm = TRUE),
-                q25 = quantile(discharge, 0.25, na.rm = TRUE),
-                q75 = quantile(discharge, 0.75, na.rm = TRUE))
-    
-    
-    stay_summary <- filtered_data |>
-      summarise(variable = "stay",
-                mean = mean(stay, na.rm = TRUE),
-                sd = sd(stay, na.rm = TRUE),
-                obs = n(),
-                min = min(stay, na.rm = TRUE),
-                max = max(stay, na.rm = TRUE),
-                q25 = quantile(stay, 0.25, na.rm = TRUE),
-                q75 = quantile(stay, 0.75, na.rm = TRUE))
-    
-    surg_p_summary <- filtered_data |>
-      summarise(variable = "surg_p",
-                mean = mean(surg_p, na.rm = TRUE),
-                sd = sd(surg_p, na.rm = TRUE),
-                obs = n(),
-                min = min(surg_p, na.rm = TRUE),
-                max = max(surg_p, na.rm = TRUE),
-                q25 = quantile(surg_p, 0.25, na.rm = TRUE),
-                q75 = quantile(surg_p, 0.75, na.rm = TRUE))
-    
-    surg_u_summary <- filtered_data |>
-      summarise(variable = "surg_u",
-                mean = mean(surg_u, na.rm = TRUE),
-                sd = sd(surg_u, na.rm = TRUE),
-                obs = n(),
-                min = min(surg_u, na.rm = TRUE),
-                max = max(surg_u, na.rm = TRUE),
-                q25 = quantile(surg_u, 0.25, na.rm = TRUE),
-                q75 = quantile(surg_u, 0.75, na.rm = TRUE))
-    
-    surg_a_summary <- filtered_data |>
-      summarise(variable = "surg_a",
-                mean = mean(surg_a, na.rm = TRUE),
-                sd = sd(surg_a, na.rm = TRUE),
-                obs = n(),
-                min = min(surg_a, na.rm = TRUE),
-                max = max(surg_a, na.rm = TRUE),
-                q25 = quantile(surg_a, 0.25, na.rm = TRUE),
-                q75 = quantile(surg_a, 0.75, na.rm = TRUE))
-    
-    surg_c_summary <- filtered_data |>
-      summarise(variable = "surg_c",
-                mean = mean(surg_c, na.rm = TRUE),
-                sd = sd(surg_c, na.rm = TRUE),
-                obs = n(),
-                min = min(surg_c, na.rm = TRUE),
-                max = max(surg_c, na.rm = TRUE),
-                q25 = quantile(surg_c, 0.25, na.rm = TRUE),
-                q75 = quantile(surg_c, 0.75, na.rm = TRUE))
-    
-    surg_total_summary <- filtered_data |>
-      summarise(variable = "surg_total",
-                mean = mean(surg_total, na.rm = TRUE),
-                sd = sd(surg_total, na.rm = TRUE),
-                obs = n(),
-                min = min(surg_total, na.rm = TRUE),
-                max = max(surg_total, na.rm = TRUE),
-                q25 = quantile(surg_total, 0.25, na.rm = TRUE),
-                q75 = quantile(surg_total, 0.75, na.rm = TRUE))
-    
-    
-    # Combine the summary tables into a single table
-    summary_table <- bind_rows(surg_total_summary, surg_c_summary, surg_a_summary,
-                               surg_u_summary, surg_p_summary, stay_summary,
-                               discharge_summary, f_app_summary, app_summary,
-                               mean_wait_summary, scheduled_sur_summary, 
-                               mean_days_surg_summary, beds_summary)
-    
-    # Add the summary table to the list
-    summary_list[[year - 2014]] <- summary_table
-    
-    
-    # Save the summary table as a PDF file
-    pdf(paste0("vol_summary_table_", year, ".pdf"), width = 10, height = 4)
-    grid.table(summary_table, rows = NULL)
-    dev.off()
-    
-  }
-  
-  # B. Latex tables
-  setwd("latex")
-  
-  # Loop for Latex tables
-  for (i in 1:length(summary_list)) {
-    summary_table_latex = xtable(summary_list[[i]], caption = paste("Summary Table average costs per patient", i+2014))
-    
-    # save file in working directory
-    file_name = paste0("summary_table_volume", i+2014,".tex")
-    file_path = file.path(getwd(), file_name)
-    
-    print(summary_table_latex, file = file_path, include.rownames = FALSE, caption.placement = "top")
-  }
-
-
-
-# III. Time series --------------------------------------------------------
-  ## 1.1 Operational Costs ------------------------------------------------
-  test = CSH |> group_by(region) |> summarise(operational = sum(operational)) 
-  
-  p = CSH |> 
-    ggplot(aes(x = region, y = cmvmc)) +
-    geom_boxplot() +
-    ggtitle("title") +
-    labs(x = "Year", y = "CMVMC")
-  p = CSH |> 
-    ggplot(aes(x = year, y = cmvmc, color = region)) +
-    ggtitle("title") +
-    labs(x = "Year", y = "CMVMC")
-  p
-  str(CSH)
-  p = ggplot(data, aes(x = {{volume}}, y = {{cost}}, color = region)) +
-    geom_point(alpha = 0.6) +
-    ggtitle(title) +
-    #scale_color_brewer(palette = "Accent") + 
-    theme(plot.title = element_text(hjust = 0.5), 
-          text = element_text(family = "Helvetica"), #"Times-Roman", "Helvetica", "Courier"
-          plot.margin = unit(c(.5,.5,.5,.5), "cm"),
-          axis.title.x = element_text(size = 10),
-          axis.title.y = element_text(size = 10))+
-    labs(color = "Region")
-  ## 1.1 CMVMC Costs ------------------------------------------------------
-
-
-# Go back to project's working directory
-setwd("../../..")
-
 # ---------------- END ------------------------
-rm(list=setdiff(ls(), c("all", "all_balanced")))
+# Go back to project's working directory
+setwd("../../../../../..")
+rm(list = ls())
   

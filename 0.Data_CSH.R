@@ -4,6 +4,11 @@ library(tidyverse)
 library(dplyr)
 library(tidyr)
 library(haven)
+library(gridExtra)
+library(readxl)
+library(haven)
+library(stringr)
+
 
 # 0. Data import ----------------------------------------------------------
 # A. Data for continent
@@ -24,7 +29,15 @@ hospitals_wait = read_csv2("data/CSH/1. ACSS/demora-media-antes-da-cirurgia.csv"
   c_medicine = read_csv("data/CSH/2. Benchmarking/custos_med.csv")
   c_materials = read_csv("data/CSH/2. Benchmarking/custos_mat.csv")
   c_fse = read_csv("data/CSH/2. Benchmarking/custos_fse.csv")
-
+  n_polos = read_excel("data/CSH/6. Others/n_polos.xlsx") # key for nº of hospitals
+  
+  # Control Variables and Demographic characteristics
+  municipios = read_dta("data/CSH/5. GDH/correspondencia_hosp_concelho_16.dta") # key for municipality and hospital
+  key_mun = read_excel("data/CSH/5. GDH/keys/key_mun.xlsx")
+  key_hosp = read_excel("data/CSH/5. GDH/keys/key_hosp.xlsx")
+  characteristics = read_csv("data/CSH/7. Characterization/characteristics.csv")
+  
+# STOP HEREEE ---------  
 # B. Data for Demographic Characteristics
 #gdhs = read_dta("data/CSH/5. GDH/GDH2014_st13.dta") 
 #gdhs_test = gdhs |> sample_n(3000)
@@ -156,7 +169,6 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
                mean_wait = mean(mean_wait)) |>
     ungroup()
   
-  # missing data
   ## 1.6 Outputs -----------------------------------------------------------
     ### A. Patient discharges ----------------------------------------------
     hospitals_in = hospitals_in |>
@@ -268,7 +280,37 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
       mutate( surg = surg_p + surg_u) |> # total surgeries
       ungroup()
     
-  ## 1.8 Check missing months -------------------------------------------------
+    ## 1.7 Characteristics - Municipality ----------------------------------
+  # Arrange municipality key and join
+  key_mun = key_mun |>
+    mutate(across(c(distrito, concelho), ~as.character(.))) |>
+    mutate(distrito = ifelse(nchar(distrito) == 1, str_pad(distrito, width = 2, side = "left", pad = "0"), distrito),
+           concelho = ifelse(nchar(concelho) == 1, str_pad(concelho, width = 2, side = "left", pad = "0"), concelho)) |>
+    mutate(distrito_concelho = paste0(distrito, concelho)) |>
+    select(-c(distrito, concelho))
+  
+  municipios =  full_join(municipios, key_mun, by = c("distrito_concelho")) 
+  
+  # Join with hospital key
+  municipios = full_join(municipios, key_hosp, by = "hosp_id") 
+  
+  # Tidy data 
+  municipios = municipios |> 
+    filter(prop_utentes > 0.2) |>
+    rename("municipio" = "DES_DCF") |>
+    select(-c(d, distrito, concelho, hosp_id))
+  
+  # join with characteristics
+  characteristics = full_join(municipios, characteristics, by = c("municipio")) 
+  
+  characteristics =  characteristics |>
+    mutate(den = prop_utentes*den, fem = prop_utentes*Fem, aging = prop_utentes*aging,
+           desemp = prop_utentes*desemp, wage = prop_utentes*wage) |>
+    group_by(hospital, year) |>
+    summarise(den = mean(den), fem = mean(fem), aging = mean(aging), desemp = mean(desemp),
+              wage = mean(wage))
+  
+    ## 1.8 Check missing months -------------------------------------------------
     check_missing_months <- function(data) {
       missing_months <- data |>
         drop_na() |>  # Check for each of the variables if needed
@@ -282,7 +324,6 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
   check_missing_months(hospitals_ur)
 
 # 2. Joining data frames --------------------------------------------------
-
 ## 2.1 Rename hospitals ----------------------------------------------------
 # function
   rename_hospitals <- function(data) {
@@ -376,6 +417,7 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
   c_medicine = rename_hospitals(c_medicine)
   c_fse = rename_hospitals(c_fse)
   c_materials = rename_hospitals(c_materials)
+  characteristics = rename(characteristics)
   
 ## 2.2 Joining DB -------------------------------------------------------------
 
@@ -392,13 +434,16 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
   
   # join all databases from benchmarking
   list_df = list(CSH, c_operational, c_staff, c_staff_adjusted,
-                 c_pharma, c_medicine, c_fse, c_materials)
+                 c_pharma, c_medicine, c_fse, c_materials, characteristics)
   CSH = list_df |> 
     reduce(function(x, y) full_join(x, y, by = c("hospital" = "hospital",
                                                  "year" = "year"), 
                                     .init = NULL)) |> 
     filter(year > 2014)  |> mutate(azo = 0)
   
+  # join polos
+  CSH = full_join(CSH, n_polos, by = "hospital")
+    
   # C. Join data Açores and mainland 
   hospitals_aco$azo = 1 
   CSH = bind_rows(CSH, hospitals_aco)
@@ -410,7 +455,6 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
 # 3. Exporting Data -------------------------------------------------------
 save(CSH, file= "0.DataBase/CSH.RData")
 write.csv(CSH, file = "filename.csv")
-  
 
 ###### END #####
 rm(list=ls())

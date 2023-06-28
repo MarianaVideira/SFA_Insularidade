@@ -668,7 +668,7 @@ setwd("1. Portugal Frontier (staff)")
 
 # 9. Azores Prediction: Dummy Frontier -------------------------------------
   ## 9.1 Prediction --------------------------------------------------------
-  CSP_predict = CSP_panel |> select(unit, year, staff, azo)
+  CSP_predict = CSP_panel |> select(unit, year, staff, azo, app)
   
   # A. prediction tables
   prediction_sfa = data.frame(predict = exp(predict(sfrontd, newdata = CSP_panel)),
@@ -747,6 +747,33 @@ setwd("1. Portugal Frontier (staff)")
   
   write.csv(CSP_effi, "CSP_effi.csv", row.names = FALSE)
   
+# 10. Graph -----
+#CSP_predict = CSP_predict |> mutate()
+  # Plot the graph
+  
+  
+  ggplot(data = filter(CSP_predict, year == 2018), aes(x = app, y = staff, color = azo)) +
+    geom_point() +  # Data points
+    geom_line(data = filter(CSP_predict, azo == 0, year == 2018), aes(y = predict_sfaz), linetype = "dashed", color = "blue") +
+    geom_line(data = filter(CSP_predict, azo == 1, year == 2018), aes(y = predict_sfaz), linetype = "dashed", color = "pink") +
+    labs(x = "Consultas", y = "Custos com Pessoal", title = "Fronteira Estocástica", caption = "Note: This graphic depict a Cobb Douglas cost function for the year 2018." ) +
+    scale_color_manual(values = c("1" = "lightpink", "0" = "lightgreen"),
+                       labels = c("Portugal Continental", "Açores"),
+                       name = "")
+    
+  
+    geom_point(aes(x = avg_app_azo_1, y = avg_azo_1), color = "pink", size = 3, shape = 8) +
+    geom_point(aes(x = avg_app_azo_0, y = avg_azo_0), color = "yellow", size = 3, shape = 8)  +
+    geom_point(data = CSP_2018[CSP_2018$azo == 1, ], aes(x = log_app, y = Prediction), color = "pink", size = 3, shape = 5) +
+    geom_segment(data = CSP_2018[CSP_2018$azo == 1, ], aes(x = log_app, y = log_staff, xend = log_app, yend = Prediction), color = "black", linetype = "dotted") +
+    labs(x = "Log Appointments", y = "Log staff costs", title = "Stochastic Cost Frontier", caption = "Note: This graphic depict a Cobb Douglas cost function for the year 2020." ) +
+    scale_color_manual(values = c("1" = "lightpink", "0" = "lightgreen"),
+                       labels = c("Portugal Mainland", "Açores"),
+                       name = "") +  # Color mapping for 'main' variable and legend labels
+    theme_bw() +  # Use a white and black theme
+    theme(legend.position = "bottom",
+          plot.caption = element_text(hjust = 0)) 
+  ggsave(filename = "CDgraph.png", plot = last_plot(), width = 10, height = 8, dpi = 300)
 # §. Tests --------------------------------------------------------------
 warnings()  
 setwd("../../..")
