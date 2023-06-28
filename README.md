@@ -9,16 +9,9 @@ The project contains the following files:
 SFA_Insularidade.Rproj
 
 Required Databases:
-- all: Costs and Volume variables from Hospitals in the mainland. These were taken from ACSS portal da transparência and Benchmarking Hospitais.
+- CSH: Costs, Volume and Characteristic Variables from Hospitals in the Continent and Islands. These were taken from ACSS portal da transparência, Benchmarking Hospitais and Pordata.
+- CSP: Costs, Volume and Characteristic Variables from Primary Care Centres in the Continent and Islands. These were taken from ACSS portal da transparência, Benchmarking Hospitais and Pordata.
+- CSH_INE: Costs and Volume Variables from Hospitals in the Continent and Islands. These were taken from INE. 
 
-- hospital: Costs and Volume variables from Hospitals in the mainland. These were taken from ACSS portal da transparência. (I noticed some differences in costs between Benchmarking and ACSS datasets)
+Instructions: (...)
 
-- hospitals_aco: Costs and Volume variables from Hospitals in the mainland and Açores. Data was provided from Universidade dos açores, gathered from yearly accounting reports.
-
-- hospital_all: a join between hospitals_aco and hospital.
-
-Instructions:
-
-To run files 1. Descriptive.R, 2. OLSRegressions.R and 3. SFA_TESTS.R make sure you have the "all" database loaded.
-
-To run files 3. SFA.R and 4. Simplified_SFA.R make sure you have the "hospital" and "hospitals_all" and "hospital_aco"
