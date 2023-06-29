@@ -36,11 +36,6 @@ hospitals_wait = read_csv2("data/CSH/1. ACSS/demora-media-antes-da-cirurgia.csv"
   key_mun = read_excel("data/CSH/5. GDH/keys/key_mun.xlsx")
   key_hosp = read_excel("data/CSH/5. GDH/keys/key_hosp.xlsx")
   characteristics = read_csv("data/CSH/7. Characterization/characteristics.csv")
-  
-# STOP HEREEE ---------  
-# B. Data for Demographic Characteristics
-#gdhs = read_dta("data/CSH/5. GDH/GDH2014_st13.dta") 
-#gdhs_test = gdhs |> sample_n(3000)
 
 # C. Data for Açores
 hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv") 
@@ -281,34 +276,38 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
       ungroup()
     
     ## 1.7 Characteristics - Municipality ----------------------------------
-  # Arrange municipality key and join
-  key_mun = key_mun |>
-    mutate(across(c(distrito, concelho), ~as.character(.))) |>
-    mutate(distrito = ifelse(nchar(distrito) == 1, str_pad(distrito, width = 2, side = "left", pad = "0"), distrito),
-           concelho = ifelse(nchar(concelho) == 1, str_pad(concelho, width = 2, side = "left", pad = "0"), concelho)) |>
-    mutate(distrito_concelho = paste0(distrito, concelho)) |>
-    select(-c(distrito, concelho))
-  
-  municipios =  full_join(municipios, key_mun, by = c("distrito_concelho")) 
-  
-  # Join with hospital key
-  municipios = full_join(municipios, key_hosp, by = "hosp_id") 
-  
-  # Tidy data 
-  municipios = municipios |> 
-    filter(prop_utentes > 0.2) |>
-    rename("municipio" = "DES_DCF") |>
-    select(-c(d, distrito, concelho, hosp_id))
-  
-  # join with characteristics
-  characteristics = full_join(municipios, characteristics, by = c("municipio")) 
-  
-  characteristics =  characteristics |>
-    mutate(den = prop_utentes*den, fem = prop_utentes*Fem, aging = prop_utentes*aging,
-           desemp = prop_utentes*desemp, wage = prop_utentes*wage) |>
-    group_by(hospital, year) |>
-    summarise(den = mean(den), fem = mean(fem), aging = mean(aging), desemp = mean(desemp),
-              wage = mean(wage))
+    # Arrange municipality key and join
+    key_mun = key_mun |>
+      mutate(across(c(distrito, concelho), ~as.character(.))) |>
+      mutate(distrito = ifelse(nchar(distrito) == 1, str_pad(distrito, width = 2, side = "left", pad = "0"), distrito),
+             concelho = ifelse(nchar(concelho) == 1, str_pad(concelho, width = 2, side = "left", pad = "0"), concelho)) |>
+      mutate(distrito_concelho = paste0(distrito, concelho)) |>
+      select(-c(distrito, concelho))
+    
+    municipios =  full_join(municipios, key_mun, by = c("distrito_concelho"))
+    
+    # Join with hospital key
+    municipios = full_join(municipios, key_hosp, by = "hosp_id") |> 
+      mutate( distrito_concelho = ifelse(hosp_id == 'HSEI' & prop_utentes > 0.5 , '3001', distrito_concelho),
+              distrito_concelho = ifelse(hosp_id == 'HSEI' & prop_utentes > 0.2 & prop_utentes < 0.5 , '3002', distrito_concelho)) |>
+      drop_na(hosp_id)
+    
+    write.csv(municipios, file = "mun.csv")
+    # Tidy data 
+    municipios = municipios |> 
+      filter(prop_utentes > 0.2) |>
+      rename("municipio" = "DES_DCF") |>
+      select(-c(d, distrito, concelho))
+    
+    # join with characteristics
+    characteristics = full_join(municipios, characteristics, by = c("municipio")) 
+    
+    characteristics =  characteristics |>
+      mutate(den = prop_utentes*den, fem = prop_utentes*Fem, aging = prop_utentes*aging,
+             desemp = prop_utentes*desemp, wage = prop_utentes*wage) |>
+      group_by(hospital, year) |>
+      summarise(den = mean(den), fem = mean(fem), aging = mean(aging), desemp = mean(desemp),
+                wage = mean(wage))
   
     ## 1.8 Check missing months -------------------------------------------------
     check_missing_months <- function(data) {
@@ -343,7 +342,11 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
                                             "Centro Hospitalar Vila Nova de Gaia/Espinho, EPE", hospital),
                           hospital = ifelse(hospital == "Hospital Arcebispo João Crisóstomo - Cantanhede", 
                                             "Hospital Arcebispo João Crisóstomo", hospital),
+                          hospital = ifelse(hospital == "Hospital Arcebispo João Crisostomo - Cantanhede", 
+                                            "Hospital Arcebispo João Crisóstomo", hospital),
                           hospital = ifelse(hospital == "Hospital da Senhora da Oliveira Guimarães, EPE", 
+                                            "Hospital da Senhora da Oliveira, Guimarães, EPE", hospital),
+                          hospital = ifelse(hospital == "Hospital Senhora da Oliveira, E.P.E. - Guimarães", 
                                             "Hospital da Senhora da Oliveira, Guimarães, EPE", hospital),
                           hospital = ifelse(hospital == "Hospital Distrital Figueira da Foz, EPE", 
                                             "Hospital Distrital da Figueira da Foz, EPE", hospital),
@@ -352,6 +355,8 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
                           hospital = ifelse(hospital == "Hospital Dr. Francisco Zagalo - Ovar", 
                                             "Hospital Dr. Francisco Zagalo", hospital),
                           hospital = ifelse(hospital == "Hospital Garcia de Orta, EPE - Almada", 
+                                            "Hospital Garcia de Orta, EPE", hospital),
+                          hospital = ifelse(hospital == "Hospital Garcia de Orta, E.P.E. - Almada", 
                                             "Hospital Garcia de Orta, EPE", hospital),
                           hospital = ifelse(hospital == "Instituto de Oftalmologia Dr. Gama Pinto", 
                                             "Instituto Gama Pinto", hospital),
@@ -366,6 +371,8 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
                           hospital = ifelse(hospital == "Hospital de Braga, PPP", 
                                             "Hospital de Braga", hospital),
                           hospital = ifelse(hospital == "Centro Hospitalar do Barreiro - Montijo, EPE", 
+                                            "Centro Hospitalar Barreiro/Montijo, EPE", hospital),
+                          hospital = ifelse(hospital == "Centro Hospitalar Barreiro/Montijo, E.P.E.", 
                                             "Centro Hospitalar Barreiro/Montijo, EPE", hospital),
                           hospital = ifelse(hospital == "Centro Hospitalar do Oeste, EPE", 
                                             "Centro Hospitalar do Oeste", hospital),
@@ -387,17 +394,62 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
                                             "Hospital Rovisco Pais", hospital),
                           hospital = ifelse(hospital == "Hospital Fernando Fonseca, EPE", 
                                             "Hospital Professor Doutor Fernando Fonseca, EPE", hospital),
+                          hospital = ifelse(hospital == "Hospital Professor Dr. Fernando da Fonseca, E.P.E.", 
+                                            "Hospital Professor Doutor Fernando Fonseca, EPE", hospital),
                           hospital = ifelse(hospital == "Hospital de Vila Franca de Xira, PPP", 
                                             "Hospital de Vila Franca de Xira", hospital),
                           hospital = ifelse(hospital == "Hospital de Vila Franca de Xira, EPE", 
                                             "Hospital de Vila Franca de Xira", hospital),
                           hospital = ifelse(hospital == "Hospital Santa Maria Maior, EPE", 
                                             "Hospital Distrital S.Maria Maior, EPE - Barcelos", hospital),
+                          hospital = ifelse(hospital == "Hospital Santa Maria Maior, E.P.E. - Barcelos", 
+                                            "Hospital Distrital S.Maria Maior, EPE - Barcelos", hospital),
                           hospital = ifelse(hospital == "Hospital de Loures, EPE", 
                                             "Hospital de Loures", hospital),
                           hospital = ifelse(hospital == "Hospital de Loures, PPP", 
+                                            "Hospital de Loures", hospital),
+                          hospital = ifelse(hospital == "Centro Hospitalar de Leiria-Pombal, E.P.E.", 
+                                            "Centro Hospitalar de Leiria, EPE", hospital),
+                          hospital = ifelse(hospital == "Hospital Distrital de Santarém, E.P.E.", 
+                                            "Hospital Distrital de Santarém, EPE", hospital),
+                          hospital = ifelse(hospital == "Hospital do Espírito Santo - Évora, E.P.E.", 
+                                            "Hospital Espírito Santo de Évora, EPE", hospital),
+                          hospital = ifelse(hospital == "Unidade Local de Saúde da Guarda, E.P.E.", 
+                                            "Unidade Local de Saúde da Guarda, EPE", hospital),
+                          hospital = ifelse(hospital == "Unidade Local de Saúde de Castelo Branco, E.P.E.", 
+                                            "Unidade Local de Saúde de Castelo Branco, EPE", hospital),
+                          hospital = ifelse(hospital == "Unidade Local de Saúde de Matosinhos, E.P.E.", 
+                                            "Unidade Local de Saúde de Matosinhos, EPE", hospital),
+                          hospital = ifelse(hospital == "Unidade Local de Saúde do Baixo Alentejo, E.P.E.", 
+                                            "Unidade Local de Saúde do Baixo Alentejo, EPE", hospital),
+                          hospital = ifelse(hospital == "Unidade Local de Saúde do Litoral Alentejano, E.P.E.", 
+                                            "Unidade Local de Saúde do Litoral Alentejano, EPE", hospital),
+                          hospital = ifelse(hospital == "Unidade Local de Saúde do Norte Alentejano E. P. E.", 
+                                            "Unidade Local de Saúde do Norte Alentejano, EPE", hospital),
+                          hospital = ifelse(hospital == "Unidade Local de Saúde Nordeste, E.P.E.", 
+                                            "Unidade Local de Saúde do Nordeste, EPE", hospital),
+                          hospital = ifelse(hospital == "Unidade Local de Saúde Nordeste, E.P.E.", 
+                                            "Unidade Local de Saúde do Nordeste, EPE", hospital),
+                          hospital = ifelse(hospital == "Centro Hospitalar Setúbal, E.P.E", 
+                                            "Centro Hospitalar de Setúbal, EPE", hospital),
+                          hospital = ifelse(hospital == "Centro Hospitalar de Tras-os-Montes e Alto Douro, E.P.E.", 
+                                            "Centro Hospitalar Trás-os-Montes e Alto Douro, EPE", hospital),
+                          hospital = ifelse(hospital == "Centro Hospitalar do Baixo Vouga, E.P.E.", 
+                                            "Centro Hospitalar do Baixo Vouga, EPE", hospital),
+                          hospital = ifelse(hospital == "Centro Hospitalar do Médio Ave, E.P.E.", 
+                                            "Centro Hospitalar do Médio Ave, EPE", hospital),
+                          hospital = ifelse(hospital == "Centro Hospitalar Lisboa Ocidental, E.P.E.", 
+                                            "Centro Hospitalar de Lisboa Ocidental, EPE", hospital),
+                          hospital = ifelse(hospital == "Centro Hospitalar e Universitário de Coimbra, E.P.E.", 
+                                            "Centro Hospitalar e Universitário de Coimbra, EPE", hospital),
+                          hospital = ifelse(hospital == "Centro Hospitalar Tâmega e Sousa, E.P.E.", 
+                                            "Centro Hospitalar Tâmega e Sousa, EPE", hospital),
+                          hospital = ifelse(hospital == "Centro Hospitalar Tondela-Viseu, E.P.E.", 
+                                            "Centro Hospitalar Tondela-Viseu, EPE", hospital),
+                          hospital = ifelse(hospital == "HPP Hospital de Cascais, Dr. José de Almeida", 
+                                            "Hospital de Cascais, PPP", hospital),
+                          hospital = ifelse(hospital == "Hospital Beatriz Ângelo - Loures", 
                                             "Hospital de Loures", hospital))
-    
     return(data)
   }
 
@@ -417,7 +469,7 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
   c_medicine = rename_hospitals(c_medicine)
   c_fse = rename_hospitals(c_fse)
   c_materials = rename_hospitals(c_materials)
-  characteristics = rename(characteristics)
+  characteristics = rename_hospitals(characteristics)
   
 ## 2.2 Joining DB -------------------------------------------------------------
 
@@ -434,24 +486,29 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
   
   # join all databases from benchmarking
   list_df = list(CSH, c_operational, c_staff, c_staff_adjusted,
-                 c_pharma, c_medicine, c_fse, c_materials, characteristics)
+                 c_pharma, c_medicine, c_fse, c_materials)
   CSH = list_df |> 
     reduce(function(x, y) full_join(x, y, by = c("hospital" = "hospital",
                                                  "year" = "year"), 
                                     .init = NULL)) |> 
     filter(year > 2014)  |> mutate(azo = 0)
-  
-  # join polos
-  CSH = full_join(CSH, n_polos, by = "hospital")
     
   # C. Join data Açores and mainland 
-  hospitals_aco$azo = 1 
+  hospitals_aco = hospitals_aco |>
+    mutate(azo = 1 , operational_ACSS = operational)
   CSH = bind_rows(CSH, hospitals_aco)
   CSH$azo = factor(CSH$azo)
   
+  
+  
+  # D. Join polos and characteristics
+  CSH = full_join(CSH, characteristics, by = c("hospital", "year"))
+  CSH = full_join(CSH, n_polos, by = "hospital")
+  
   # D. Create new Rate of Occupancy
-  CSH = CSH |> mutate(RO = in_days/ (beds*30.4375*12), region = as.factor(region))
-
+  CSH = CSH |> mutate(RO = in_days/ (beds*30.4375*12), region = as.factor(region)) |>
+    drop_na(hospital, year)
+  
 # 3. Exporting Data -------------------------------------------------------
 save(CSH, file= "0.DataBase/CSH.RData")
 write.csv(CSH, file = "filename.csv")
