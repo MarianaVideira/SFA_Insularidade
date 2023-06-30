@@ -8,9 +8,10 @@ library(plm)
 library(stargazer)
 library(purrr)
 library(stringr)
+library(gridExtra)
 
 # I. SFA Portugal Continent for Operational Costs -------------------------
-  ## 1. Data ----------------------------------------------------------------
+  ## 1. Data --------------------------------------------------------------
   load("0.DataBase/CSH.RData")
     dir.create("3.SFA_outputs")
     setwd("3.SFA_outputs")
@@ -18,8 +19,7 @@ library(stringr)
     setwd("CSH")
     dir.create("1. Portugal Frontier (operational)")
     setwd("1. Portugal Frontier (operational)")
-    ### 1.1 Variables and Functional form ---------------------------------
-      #### A. Select variables and test correlation -------------------------
+    ### A. Select variables and test correlation --------------------------
       CSH_0 = CSH |> select(hospital, year, operational, operational_ACSS, in_days, RO, azo, region, 
                             surg, app, urge, patient_dis, wait_scheduled_surg) |> 
         drop_na()
@@ -37,9 +37,9 @@ library(stringr)
         filter(azo == 0) |>
         drop_na()
       
-      #### B. Panel data ----------------------------------------------------
+    ### B. Panel data -----------------------------------------------------
       CSH_panel = pdata.frame(CSH_0, c("hospital", "year"))
-    ### 1.2 Define functional forms -----------------------------------------
+    ### C. Define functional forms ----------------------------------------
     form = log(operational) ~ log(in_days)  + log(RO) # includes Dummy variable
     formt = log(operational) ~ log(in_days) + I((log(in_days)^2)/2) + log(RO)
     
@@ -202,6 +202,7 @@ library(stringr)
               covariate.labels = c("Constant", "$\\log \\text{inpatient days}$",
                                    "$(\\log \\text{inpatient days}) ^2$", 
                                    "Z Constant", "Rate of Occupancy", "Wait for Scheduled Surgeries"))
+    
   ## 4. Azores Prediction: Continent Frontier -----------------------------
     ### 4.1 Prediction Portugal Continent -----------------------------------
     CSH_predict = CSH_panel |> select(hospital, year, operational)
@@ -298,6 +299,7 @@ library(stringr)
     # C. Descriptive 
     CSH_effi = CSH_effi |> mutate(mean_efficiencyz = rowMeans(CSH_effi[,4:10], na.rm = TRUE),
                                   mean_efficiencytz = rowMeans(CSH_effi[,11:16], na.rm = TRUE))
+    
     ### 4.4 Efficiency Azores Island ----------------------------------------
     
     # A. Efficiency tables
@@ -704,63 +706,315 @@ library(stringr)
     write.csv(CSH_effi, "CSH_effi.csv", row.names = FALSE)
     
   #### STOP HERE
-  ## 5. Graphic Representation --------------------------------------------
+# III.  SFA Portugal & Azores H. Center for Operational ACSS --------------
+  ## 1. Data --------------------------------------------------------------
+    rm(list = setdiff(ls(), c("CSH")))
+    setwd("..")
+    dir.create("3. Frontier w Azores Hospital Centre (operational ACSS)")
+    setwd("3. Frontier w Azores Hospital Centre (operational ACSS)")
+    ### A. Select variables and test correlation --------------------------
+      hosp_centre = CSH |> filter(azo == 1) |> 
+        group_by(year) |>
+        summarise(operational_ACSS = sum(operational_ACSS), in_days = sum(in_days), RO = mean(RO), 
+                  surg = sum(surg), wait_scheduled_surg = sum(wait_scheduled_surg), 
+                  aging = mean(aging), fem = mean(fem), den = sum(den)) |>
+      distinct(year, .keep_all = TRUE) |>
+      mutate(n_polos = 3, azo = 1, hospital = "hospital_azores") |>
+      mutate(azo = as.factor(azo), year = as.numeric(year)) 
+
+      # Panel for SFA analysis
+      CSH_panel = CSH |> 
+        filter(azo== 0) |>
+        select(hospital, year,operational_ACSS, in_days, azo, 
+               surg, wait_scheduled_surg, n_polos, den, fem, aging) |>
+        drop_na() 
+        
+      CSH_panel = pdata.frame(CSH_panel, c("hospital", "year"))
     
-    CSH_predict = CSH_predict |> mutate(log_operational =log(operational), 
-                                        log_in_days = log(in_days),
-                                        log_predi = log(predict_sfaz)) |> drop_na()
+      #CSH_panel = bind_rows(CSH_panel, hosp_centre)
+      
+      corr_table = CSH_panel |> 
+        select(operational_ACSS, in_days,
+               surg, wait_scheduled_surg, n_polos, den, fem, aging) |> 
+        cor()
+      
+    ### B Define functional forms -----------------------------------------
+    form = log(operational_ACSS) ~ log(in_days) +  log(surg) + log(wait_scheduled_surg) + n_polos 
+    formt = log(operational_ACSS) ~ log(in_days) + log(surg) + I((log(in_days)^2)/2) + log(wait_scheduled_surg) + n_polos
     
-    # Plot the graph
-    ggplot(data = filter(CSH_predict, year == 2018), aes(x = log_in_days, y = log_operational, color = azo)) +
-      geom_point() +
-      geom_line(data = filter(CSH_predict, azo == 0,year == 2018), aes(y = log(predict_sfaz)), linetype = "dashed", color = "blue") +
-      geom_line(data = filter(CSH_predict, azo == 1, year == 2018), aes(y = log(predict_sfaz)), linetype = "dashed", color = "pink") +
-      labs(x = "Log Number of days (inpatients)", y = "Log Operational costs", title = "Stochastic Cost Frontier", 
-           caption = "Note: This graphic depict a Cobb Douglas cost function for the year 2016." ) +
-      scale_color_manual(values = c("0" = "lightpink", "1" = "lightgreen"),
-                         labels = c("Portugal Continental", "Açores"),
-                         name = "")
+    # Firm level inefficiencies models BC95
+    # mean inefficiency of u_it is "determined" by factors z_it
+    formz = log(operational_ACSS) ~ log(in_days)  + log(surg)  | fem + den + aging  + n_polos
+    formtz = log(operational_ACSS) ~ log(in_days) + I((log(in_days)^2)/2) | fem + den + aging  + n_polos
     
-    # Plot the graph
-    ggplot(data = CSH_predict, aes(x = log_in_days, y = log_operational, color = azo)) +
-      geom_point() +
-      geom_line(data = filter(CSH_predict, azo == 0), aes(y = log(predict_sfaz)), linetype = "dashed", color = "blue") +
-      geom_line(data = filter(CSH_predict, azo == 1), aes(y = log(predict_sfaz)), linetype = "dashed", color = "pink") +
-      labs(x = "Log Number of days (inpatients)", y = "Log Operational costs", title = "Stochastic Cost Frontier", 
-           caption = "Note: This graphic depict a Cobb Douglas cost function for the year 2016." ) +
-      scale_color_manual(values = c("0" = "lightpink", "1" = "lightgreen"),
-                         labels = c("Portugal Continental", "Açores"),
-                         name = "")
+  ## 2. Operational Cost function -----------------------------------------
+    ### 2.1 Estimation: time invariant inefficiencies ---------------------
+      #### A. Cobb-Douglas (form) ----------------------------------------
+      sfront = sfa( form,  
+                     data = CSH_panel,
+                     ineffDecrease = F, # FALSE for cost function and TRUE for production
+                     truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
+                     timeEffect = FALSE, # time is allowed to have an effect on efficiency
+                     printIter = 1 )
+      summary(sfront, extraPar = TRUE)
+      
+      #### B. Trans log (formt) ------------------------------------------
+      sfrontt = sfa( formt,  
+                      data = CSH_panel,
+                      ineffDecrease = F, # FALSE for cost function and TRUE for production
+                      truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
+                      timeEffect = FALSE, # time is allowed to have an effect on efficiency
+                      printIter = 1 )
+      summary(sfrontt)
+      
+      #### C. Cobb-Douglas with z_it (formz) ------------------------------
+      sfrontz = sfa( formz,  
+                      data = CSH_panel,
+                      ineffDecrease = F, # FALSE for cost function and TRUE for production
+                      truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
+                      timeEffect = FALSE, # time is allowed to have an effect on efficiency
+                      printIter = 1 )
+      summary(sfrontz)
+      
+      #### D. Trans log with z_it (formtz) --------------------------------
+      sfronttz = sfa( formtz,  
+                       data = CSH_panel,
+                       ineffDecrease = F, # FALSE for cost function and TRUE for production
+                       truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
+                       timeEffect = FALSE, # time is allowed to have an effect on efficiency
+                       printIter = 1 )
+      summary(sfronttz)
+      
+  ## 3. Table -------------------------------------------------------------
+    # BC 92/95
+    # Creative approach to export SFA tables (since normal packages don't support format)
+    # save the coefficients and p-v as vectors:
+    c1 = as.vector(coef(sfront))
+    c2 = as.vector(coef(sfrontz))
     
-    # Plot the graph
-    ggplot(data = CSH_predict, aes(x = in_days, y = operational, color = azo)) +
-      geom_point() +
-      geom_line(data = filter(CSH_predict, azo == 0), aes(y = predict_sfaz), linetype = "dashed", color = "blue") +
-      geom_line(data = filter(CSH_predict, azo == 1), aes(y = predict_sfaz), linetype = "dashed", color = "pink") +
-      labs(x = "Dias de internamento", y = "Custos Operacionais", title = "Fronteira Estocástica", 
-           caption = "Note: This graphic depict a Cobb Douglas cost function for the year 2016." ) +
-      scale_color_manual(values = c("0" = "lightpink", "1" = "lightgreen"),
-                         labels = c("Portugal Continental", "Açores"),
-                         name = "")
-    # Plot the graph
-    ggplot(data = filter(CSH_predict, year == 2016), aes(x = in_days, y = operational, color = azo)) +
-      geom_point() +
-      geom_line(data = filter(CSH_predict, azo == 0,year == 2016), aes(y = predict_sfaz), linetype = "dashed", color = "blue") +
-      geom_line(data = filter(CSH_predict, azo == 1, year == 2016), aes(y = predict_sfaz), linetype = "dashed", color = "pink") +
-      labs(x = "Dias de internamento", y = "Custos Operacionais", title = "Fronteira Estocástica", 
-           caption = "Note: This graphic depict a Cobb Douglas cost function for the year 2016." ) +
-      scale_color_manual(values = c("0" = "lightpink", "1" = "lightgreen"),
-                         labels = c("Portugal Continental", "Açores"),
-                         name = "")
+    pv1 = as.vector(coef(summary(sfront))[,4])
+    pv2 = as.vector(coef(summary(sfrontz))[,4])
+    
+    # save gamma parameter, nº of time periods, log-likelihood and mean efficiency
+    g1 = round(as.vector(coef(summary(sfront, extraPar = TRUE))[nrow(coef(summary(sfront))),1]), 3)
+    g2 = round(as.vector(coef(summary(sfrontz, extraPar = TRUE))[nrow(coef(summary(sfrontz))),1]),3)
+     
+    ll1 = round(as.numeric(logLik(sfront, which = "mle")),3)
+    ll2 = round(as.numeric(logLik(sfrontz, which = "mle")),3)
+    
+    me1 = round(summary(sfront)$efficMean,3)
+    me2 = round(summary(sfrontz)$efficMean,3)
+    
+    #run the same specifications using a linear model 
+    # (remember to change the "|" before the z variables to a "+" in the linear model):
+    lm1 = lm(form, data = CSH_panel)
+    lm2 = lm(log(operational_ACSS) ~ log(in_days)  + log(surg) + log(fem) + fem + den + aging  + n_polos, data = CSH_panel)
+    
+    #Finally, use stargazer on the linear models, and change the coefficients and the standard errors reported using the "coef" and "se" arguments:
+    stargazer(lm1, lm2,
+              coef = list(c1,c2), 
+              se = list(c1,c2),
+              p = list(pv1,pv2),
+              t.auto = FALSE,
+              p.auto = FALSE,
+              intercept.bottom = FALSE,
+              digits = 3, float.env = "table",
+              dep.var.labels=c("$\\log$ Operational Costs"),
+              title = "Stochastic Frontier: Hospital Healthcare",
+              column.labels = c("Cobb-Douglas", "Translog"),
+              model.numbers = TRUE,
+              out = "SFAregression_table_1_CSH.tex",
+              omit.stat = c("rsq", "adj.rsq", "ser", "f"),
+              add.lines = list(c("Gamma", g1, g2), 
+                               c("Log-likelihood value", ll1,ll2),
+                               c("Mean efficiency", me1, me2)),
+              covariate.labels = c("Constant","$\\log \\text{inpatient days}$", 
+                                   "$\\log \\text{surgeries}$", "$\\log \\text{wait secheduled surgeries}$",
+                                   "$\\log$ Z Constant", "Proportion female", "Population density",
+                                   "Aging index", "nº of hospitals"))
+    
+  ## 4. Azores Prediction: Dummy Frontier ---------------------------------
+    ### 4.1 Prediction HC -------------------------------------------------
+    CSH_predict = bind_rows(hosp_centre, filter(CSH, azo == 0)) |> pdata.frame(c("hospital", "year"))
+    
+    CSH_predict = CSH_predict |> mutate( ifelse(hospital == "hospital_azores", 1, azo)) |>
+      mutate(azo = as.factor(azo))
+    
+    hosp_centre = pdata.frame(hosp_centre, c("year","hospital"))
+      #### A. prediction tables Azores --------------------------------------
+      # SFA
+      prediction_sfa = data.frame(predict = exp(predict(sfront, newdata = hosp_centre)),
+                                  year = rownames(data.frame(predict(sfront, newdata = hosp_centre))),
+                                  hospital = "hospital_azores" ) |>
+        mutate( year = str_remove(year, "-.*")) |>
+        rename("predict_sfa" = "predict")
+      
+      # SFA Z
+      prediction_sfaz = data.frame(predict = exp(predict(sfrontz, newdata = hosp_centre)),
+                                   year = rownames(data.frame(predict(sfronttz, newdata = hosp_centre))),
+                                   hospital = "hospital_azores" ) |>
+        mutate( year = str_remove(year, "-.*")) |>
+        rename("predict_sfaz" = "predict")
+      
+      #### B. Join all data frames Azores -----------------------------------
+      list_df = list(hosp_centre,prediction_sfa, prediction_sfaz)
+      
+      CSH_predict_Azor = list_df |> 
+        reduce(function(x, y) full_join(x, y, by = c("hospital" = "hospital",
+                                                     "year" = "year"), 
+                                        .init = NULL))
+      
+      #### C. Prediction tables whole sample --------------------------------
+      # SFA
+      prediction_sfa = data.frame(predict = exp(predict(sfront, newdata = CSH_predict)),
+                                  hospital = rownames(data.frame(predict(sfront, newdata = CSH_predict)))) |>
+        separate("hospital", c("hospital", "year"),sep = "-") |>
+        rename("predict_sfa" = "predict")
+      # SFA Z
+      prediction_sfaz = data.frame(predict = exp(predict(sfrontz, newdata = CSH_predict)),
+                                   hospital = rownames(data.frame(predict(sfronttz, newdata = CSH_predict)))) |>
+        separate("hospital", c("hospital", "year"),sep = "-") |>
+        rename("predict_sfaz" = "predict")
+      
+      #### D. Join all data frames  ------------------------------------------
+      list_df = list(CSH_predict,prediction_sfa, prediction_sfaz)
+      
+      CSH_predict = list_df |> 
+        reduce(function(x, y) full_join(x, y, by = c("hospital" = "hospital",
+                                                     "year" = "year"), 
+                                        .init = NULL))
+      
+      #### E. Differences Azores --------------------------------------------
+      # These differences are too high
+      CSH_predict_Azor = CSH_predict_Azor |> mutate(difference = operational_ACSS - predict_sfa, differencez = operational_ACSS - predict_sfaz,
+                                          difference_perc_sfa = (operational_ACSS - predict_sfa)/predict_sfa,
+                                          difference_perc_sfaz = (operational_ACSS - predict_sfaz)/predict_sfaz)
+      write.csv(CSH_predict, "CSH_predict.csv", row.names = FALSE)
+      
+      CSH_predict_summary = CSH_predict_Azor |> group_by(hospital) |>
+        summarise(operational_ACSS = mean(operational_ACSS), predict_sfa = mean(predict_sfa), difference = mean(difference),
+                  differencez = mean(differencez), difference_perc_sfa = mean(difference_perc_sfa),
+                  difference_perc_sfaz = mean(difference_perc_sfa))
+      write.csv(CSH_predict_summary, "CSH_predict_summary.csv", row.names = FALSE)
+      
+    ### 4.2 Efficiency HC -------------------------------------------------
+      #### A. Efficiency tables Azores ------------------------------------
+      # SFA 
+      efficiencies_sfa = data.frame(efficiency = efficiencies(sfront, newdata = hosp_centre),
+                                    year = rownames(efficiencies(sfront, newdata = hosp_centre)),
+                                    hospital = "hospital_azores" ) |>
+        rename("efficiency_sfa" = "efficiency")
+      
+      # SFA Z
+      efficiencies_sfaz = data.frame(year = rownames(efficiencies(sfrontz, newdata = hosp_centre)),
+                                     efficiency = efficiencies(sfrontz, newdata = hosp_centre),
+                                     hospital = "hospital_azores") |>
+        rename("efficiency_sfaz" = "efficiency")
   
-# III. SFA Portugal Continent for Staff Costs -----------------------------
-# 1. Data -----------------------------------------------------------------
+      #### B. Join all efficiency tables Azores ---------------------------
+      list_df = list(CSH_predict_Azor, efficiencies_sfa, efficiencies_sfaz)
+      
+      CSH_predict_Azor = list_df |> reduce(function(x,y) full_join(x, y, by = c("hospital" = "hospital", "year" = "year"),
+                                 .init = NULL)) 
+      
+      write.csv(CSH_predict_Azor, "CSH_effi_pred_Azor.csv", row.names = FALSE)
+      
+      #### C. Efficiency tables whole DB ------------------------------------
+      # SFA
+      efficiencies_sfa = data.frame(efficiency = efficiencies(sfront, newdata = CSH_predict),
+                                    hospital = rownames(efficiencies(sfront, newdata = CSH_predict))) |>
+        rename("efficiency_sfa" = "efficiency")
+  
+      # SFA Z
+      efficiencies_sfaz = data.frame(hospital = rownames(efficiencies(sfrontz, newdata = CSH_predict)),
+                                     efficiency = efficiencies(sfrontz, newdata = CSH_predict)) |>
+        pivot_longer(c("efficiency.2015","efficiency.2016", "efficiency.2017", "efficiency.2018",
+                       "efficiency.2019", "efficiency.2020", "efficiency.2021"),
+                     names_to = "year", values_to = "efficiency_sfa_z") |>
+        mutate( year = str_remove(year, ".*\\.")) # .(any character) *(zero or more occurences) \\. (".")
+      
+      #### D. Join all efficiency tables (whole sample) -------------------
+      CSH_predict = full_join(CSH_predict, efficiencies_sfaz, by = c("hospital" = "hospital", "year" = "year"))
+      CSH_predict = full_join(CSH_predict, efficiencies_sfa, by = c("hospital" = "hospital"))
+      
+    ### 4.3 Over cost Estimation -----------------------------------------
+    # A. Mean efficiency Portugal and Azores
+    innef_P = 1-round(summary(sfront)$efficMean,3)
+    innefz_P = 1-round(summary(sfrontz)$efficMean,3)
+    
+    # B. Table with overcosts
+    CSH_predict_Azor = CSH_predict_Azor |>
+      mutate(Inef_Cost_Cont = innef_P * predict_sfa, 
+             Inef_Cost_Cont_z = innefz_P * predict_sfaz,
+             Innef_Cost_Isl = (1-efficiency_sfa)*predict_sfa,
+             Innef_Cost_Isl_z = (1-efficiency_sfaz)*predict_sfaz,
+             overcost =  Innef_Cost_Isl- Inef_Cost_Cont,
+             overcostz = Innef_Cost_Isl_z - Inef_Cost_Cont_z) |>
+      select(hospital, year, operational_ACSS, predict_sfa, predict_sfaz, efficiency_sfa,
+             efficiency_sfaz, Inef_Cost_Cont, Inef_Cost_Cont_z, Innef_Cost_Isl,
+             Innef_Cost_Isl_z, overcost, overcostz)
+    
+    # C. Save to directory 
+    write.csv(CSH_predict_Azor, "CSH_predict_overcost_Azores.csv", row.names = FALSE)
+    # Save the summary table as a PDF file
+    pdf(paste0("CSH_predict_overcost_azores.pdf"), width = 20, height = 8)
+    grid.table(CSH_predict_Azor, rows = NULL)
+    dev.off()
+    
+    # B. Table with overcosts
+    CSH_predict = CSH_predict |>
+      mutate(Inef_Cost_Cont = innef_P * predict_sfa, 
+             Inef_Cost_Cont_z = innefz_P * predict_sfaz,
+             Innef_Cost_Isl = (1-efficiency_sfa)*predict_sfa,
+             Innef_Cost_Isl_z = (1-efficiency_sfa_z)*predict_sfaz,
+             overcost =  Innef_Cost_Isl- Inef_Cost_Cont,
+             overcostz = Innef_Cost_Isl_z - Inef_Cost_Cont_z)
+
+  ## 5. Graphic Representation --------------------------------------------
+    ### A. Database for graph
+    CSH_predict = CSH_predict |> mutate(pred_overcost = predict_sfaz + overcostz)
+    d = CSH_predict |> select(azo, predict_sfa, predict_sfaz, pred_overcost)
+    
+    ggplot(data = filter(CSH_predict, year == 2018), aes(x = in_days, y = operational_ACSS, color = azo)) +
+      geom_point(alpha = 0.7) +
+      xlim(0, 1e+06) +
+      ylim(0, 1e+09) +
+      geom_line(data = filter(CSH_predict, azo == 0), aes(y = predict_sfaz), linetype = "dashed", color = "lightgreen") +
+      geom_point(data = filter(CSH_predict, azo == 1, year == 2018), aes(x = in_days, y = pred_overcost), color = "red", shape = 4, size = 3) +
+      geom_segment(data = filter(CSH_predict, azo == 1, year == 2018), aes(x = in_days, y = predict_sfa, xend = in_days, yend = pred_overcost), color = "red", linetype = "dotted") +
+      geom_segment(data = filter(CSH_predict, azo == 1, year == 2018), aes(x = in_days, y = pred_overcost, xend = in_days, yend = operational_ACSS), color = "blue", linetype = "dotted") +
+      geom_point(data = filter(CSH_predict, azo == 1, year == 2018), aes(x = in_days, y = predict_sfa), color = "pink") +
+      labs(x = "Consultas", y = "Custos com Pessoal", title = "Fronteira Estocástica", caption = "Note: This graphic depict a Cobb Douglas cost function for the year 2018." ) +
+      scale_color_manual(values = c("1" = "lightblue", "0" = "lightgreen"),
+                         labels = c("Portugal Continental", "Açores"),
+                         name = "")
+    ggsave(filename = "CDgraph_eff_pred.png", plot = last_plot(), width = 10, height = 8, dpi = 300)
+    
+    
+    # ZOOM in
+    ggplot(data = filter(CSH_predict, year == 2018), aes(x = in_days, y = operational_ACSS, color = azo)) +
+      geom_point(alpha = 0.7) +
+      xlim(0, 500000) +
+      ylim(0, 2.5e+08) +
+      geom_line(data = filter(CSH_predict, azo == 0), aes(y = predict_sfaz), linetype = "dashed", color = "lightgreen") +
+      geom_point(data = filter(CSH_predict, azo == 1, year == 2018), aes(x = in_days, y = pred_overcost), color = "red", shape = 4, size = 3) +
+      geom_segment(data = filter(CSH_predict, azo == 1, year == 2018), aes(x = in_days, y = predict_sfa, xend = in_days, yend = pred_overcost), color = "red", linetype = "dotted") +
+      geom_segment(data = filter(CSH_predict, azo == 1, year == 2018), aes(x = in_days, y = pred_overcost, xend = in_days, yend = operational_ACSS), color = "blue", linetype = "dotted") +
+      geom_point(data = filter(CSH_predict, azo == 1, year == 2018), aes(x = in_days, y = predict_sfa), color = "pink") +
+      labs(x = "Consultas", y = "Custos com Pessoal", title = "Fronteira Estocástica", caption = "Note: This graphic depict a Cobb Douglas cost function for the year 2018." ) +
+      scale_color_manual(values = c("1" = "lightblue", "0" = "lightgreen"),
+                         labels = c("Portugal Continental", "Açores"),
+                         name = "")
+    ggsave(filename = "CDgraph_eff_pred_zoom.png", plot = last_plot(), width = 10, height = 8, dpi = 300)
+  
+# IV. SFA Portugal Continent for Staff Costs ------------------------------
+## 1. Data -----------------------------------------------------------------
 rm(list = setdiff(ls(), "CSH"))
   setwd("..")
   dir.create("3. Portugal Frontier (staff)")
   setwd("3. Portugal Frontier (staff)")
-  ## 1.1 Variables and Functional form ------------------------------------
-    ### A. Select variables and test correlation --------------------------
+  ### A. Variables and Functional form ------------------------------------
+  ### B. Select variables and test correlation --------------------------
     CSH_0 = CSH |> select(hospital, year, staff, in_days, RO, azo, region, 
                           surg, app, urge, patient_dis, wait_scheduled_surg) |> 
       drop_na()
@@ -944,7 +1198,7 @@ rm(list = setdiff(ls(), "CSH"))
                                  "$\\log$ urgencies", "$(\\log \\text{inpatient days}) ^2$", 
                                  "$\\log \\text{surgeries} ^2$", 
                                  "Z Constant", "Rate of Occupancy", "Wait for Scheduled Surgeries"))
-# §. Tests ----------------------------------------------------------------
+# V. Tests ----------------------------------------------------------------
 warnings()  
 setwd("../../..")
 ###### END #####
