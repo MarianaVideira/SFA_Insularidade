@@ -8,7 +8,7 @@ library(plm)
 library(stargazer)
 library(purrr)
 library(stringr)
-
+library(gridExtra)
 # I. SFA Portugal Continent for Operational Costs -------------------------
   ## 1. Data and Functional forms -----------------------------------------
   load("0.DataBase/CSP.RData")
@@ -879,7 +879,7 @@ library(stringr)
     
     ### C. Define functional forms ------------------------------------------
     form = log(staff) ~ log(app) + log(n_polos)  
-    formz = log(staff) ~ log(app)  + log(n_polos) | prop_nofam_MF + prop_age_75_hig  + prop_age_0_4 
+    formz = log(staff) ~ log(app)   | prop_nofam_MF + prop_age_75_hig  + prop_age_0_4 + n_polos
     
   ## 2. Operational Cost function: Panel Data --------------------------------
     ### 2.3 Estimation: time invariant inefficiencies ------------------------
@@ -981,7 +981,8 @@ library(stringr)
     CSP_predict_summary = CSP_predict |> group_by(aces) |>
       summarise( staff = mean(staff), predict_sfa = mean(predict_sfa), difference = mean(difference),
                  differencez = mean(differencez), difference_perc_sfa = differencez/mean(predict_sfa),
-                 difference_perc_sfaz = differencez/mean(predict_sfaz))
+                 difference_perc_sfaz = differencez/mean(predict_sfaz),
+                 inscritos = mean(inscritos))
     write.csv(CSP_predict_summary, "CSP_predict_summary.csv", row.names = FALSE)
     
     ### 4.2 Efficiency ----------------------------------------------------
@@ -1004,6 +1005,14 @@ library(stringr)
                             by = c("aces" = "aces", "year" = "year"))
     CSP_predict = full_join(CSP_predict,efficiencies_sfa, by = c("aces" = "aces"))
     
+    CSP_predict_summary = CSP_predict |> group_by(aces) |>
+      summarise( staff = mean(staff), predict_sfa = mean(predict_sfa), difference = mean(difference),
+                 differencez = mean(differencez), difference_perc_sfa = differencez/mean(predict_sfa),
+                 difference_perc_sfaz = differencez/mean(predict_sfaz),
+                 efficiency_sfa = mean(efficiency_sfa), efficiency_sfa_z = mean(efficiency_sfa_z),
+                 inscritos = mean(inscritos))
+    write.csv(CSP_predict_summary, "CSP_eff_summary.csv", row.names = FALSE)
+    
     ### 4.3 Over cost Estimation ------------------------------------------
     
     # A. Mean efficiency Portugal and Azores
@@ -1017,23 +1026,31 @@ library(stringr)
                Innef_Cost_Isl = (1-efficiency_sfa)*predict_sfa,
                Innef_Cost_Isl_z = (1-efficiency_sfa_z)*predict_sfaz,
                overcost =  Innef_Cost_Isl- Inef_Cost_Cont,
-               overcostz = Innef_Cost_Isl_z - Inef_Cost_Cont_z)
+               overcostz = Innef_Cost_Isl_z - Inef_Cost_Cont_z,
+               mean_overz = overcostz/inscritos)
     
-        Azo_CSP_predict = CSP_predict |> filter(azo == 1) |>
-        group_by(year, aces) |>
-        summarise( staff = sum(staff), 
-                  Inef_Cost_Cont = sum (Inef_Cost_Cont), Inef_Cost_Cont_z = sum(Inef_Cost_Cont_z),
-                  Innef_Cost_Isl = sum(Innef_Cost_Isl), Innef_Cost_Isl_z = sum(Innef_Cost_Isl_z),
-                  overcost = sum(overcost), overcostz = sum(overcostz)) |>
-          distinct()
-      
+    Azo_CSP_predict_sum = CSP_predict |> filter(azo == 1) |>
+    group_by(aces) |>
+    summarise( staff = sum(staff), 
+              Inef_Cost_Cont = sum (Inef_Cost_Cont), Inef_Cost_Cont_z = sum(Inef_Cost_Cont_z),
+              Innef_Cost_Isl = sum(Innef_Cost_Isl), Innef_Cost_Isl_z = sum(Innef_Cost_Isl_z),
+              overcost = sum(overcost), overcostz = sum(overcostz),
+              mean_overz = mean(mean_overz)) |>
+      distinct()
+    write.csv(Azo_CSP_predict_sum, "CSP_predict_Azo_sum.csv", row.names = FALSE)
     
-    write.csv(Azo_CSP_predict, "CSP_predict.csv", row.names = FALSE)
     # Save the summary table as a PDF file
     pdf(paste0("CSH_predict_overcost_azores.pdf"), width = 20, height = 25)
-    grid.table(Azo_CSP_predict, rows = NULL)
+    grid.table(Azo_CSP_predict_sum, rows = NULL)
     dev.off()
     
+    Azo_CSP_predict_sum = CSP_predict |> group_by(aces) |>
+      summarise( staff = mean(staff), predict_sfa = mean(predict_sfa), difference = mean(difference),
+                 differencez = mean(differencez), difference_perc_sfa = differencez/mean(predict_sfa),
+                 difference_perc_sfaz = differencez/mean(predict_sfaz),
+                 efficiency_sfa = mean(efficiency_sfa), efficiency_sfa_z = mean(efficiency_sfa_z),
+                 overcost = mean(overcost), overcostz = mean(overcostz))
+    write.csv(Azo_CSP_predict_sum, "CSP_Azo_summary.csv", row.names = FALSE)
   ## 5. Graph -------------------------------------------------------------
     CSP_predict = CSP_predict |> mutate(new_predict = predict_sfa*me1)
     CSP_predict = CSP_predict |> mutate(new_predict_2 = predict_sfa*efficiency_sfa)

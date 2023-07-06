@@ -9,7 +9,6 @@ library(readxl)
 library(haven)
 library(stringr)
 
-
 # 0. Data import ----------------------------------------------------------
 # A. Data for continent
 hospitals_fin = read_csv2("data/CSH/1. ACSS/agregados-economico-financeiros.csv") # for semicolon separated values
@@ -35,6 +34,7 @@ hospitals_wait = read_csv2("data/CSH/1. ACSS/demora-media-antes-da-cirurgia.csv"
   municipios = read_dta("data/CSH/5. GDH/correspondencia_hosp_concelho_16.dta") # key for municipality and hospital
   key_mun = read_excel("data/CSH/5. GDH/keys/key_mun.xlsx")
   key_hosp = read_excel("data/CSH/5. GDH/keys/key_hosp.xlsx")
+  key_region = read_excel("data/CSH/5. GDH/keys/key_region.xlsx")
   characteristics = read_csv("data/CSH/7. Characterization/characteristics.csv")
 
 # C. Data for Açores
@@ -276,6 +276,9 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
       ungroup()
     
     ## 1.7 Characteristics - Municipality ----------------------------------
+    key_mun = full_join(key_mun,key_region, by ="distrito") |> select(-distrito_nome) |>
+      drop_na()
+  
     # Arrange municipality key and join
     key_mun = key_mun |>
       mutate(across(c(distrito, concelho), ~as.character(.))) |>
@@ -290,19 +293,23 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
     municipios = full_join(municipios, key_hosp, by = "hosp_id") |> 
       mutate( distrito_concelho = ifelse(hosp_id == 'HSEI' & prop_utentes > 0.5 , '3001', distrito_concelho),
               distrito_concelho = ifelse(hosp_id == 'HSEI' & prop_utentes > 0.2 & prop_utentes < 0.5 , '3002', distrito_concelho)) |>
-      drop_na(hosp_id)
-    
-    write.csv(municipios, file = "mun.csv")
-    # Tidy data 
-    municipios = municipios |> 
-      filter(prop_utentes > 0.2) |>
+      drop_na(hosp_id, total) |>
       rename("municipio" = "DES_DCF") |>
       select(-c(d, distrito, concelho))
     
+    write.csv(municipios, file = "mun.csv")
+    
     # join with characteristics
     characteristics = full_join(municipios, characteristics, by = c("municipio")) 
+    write.csv(characteristics, file = "car.csv")
+    # generate population by region
+    pop_region =  characteristics |>
+      group_by(region) |>
+      summarise(pop = sum(pop, na.rm = TRUE)) 
     
     characteristics =  characteristics |>
+      drop_na(total) |> 
+      filter(prop_utentes > 0.2) |>
       mutate(den = prop_utentes*den, fem = prop_utentes*Fem, aging = prop_utentes*aging,
              desemp = prop_utentes*desemp, wage = prop_utentes*wage) |>
       group_by(hospital, year) |>
@@ -499,14 +506,17 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
   CSH = bind_rows(CSH, hospitals_aco)
   CSH$azo = factor(CSH$azo)
   
-  
-  
-  # D. Join polos and characteristics
+  # D. Join polos, characteristics and population per region
   CSH = full_join(CSH, characteristics, by = c("hospital", "year"))
   CSH = full_join(CSH, n_polos, by = "hospital")
+  CSH = full_join(CSH, pop_region, by = "region")
   
   # D. Create new Rate of Occupancy
-  CSH = CSH |> mutate(RO = in_days/ (beds*30.4375*12), region = as.factor(region)) |>
+  CSH = CSH |> mutate(RO = in_days/ (beds*30.4375*12), region = as.factor(region),
+                      avg_operational_pop = operational_ACSS/pop, 
+                      avg_staff = staff/pop) |>
+    filter(!str_detect(hospital, "^Instituto Português de Oncologia")) |>
+    mutate(avg_operational_ACSS = operational_ACSS/pop, avg_staff_pop = staff/pop) |>
     drop_na(hospital, year)
   
 # 3. Exporting Data -------------------------------------------------------

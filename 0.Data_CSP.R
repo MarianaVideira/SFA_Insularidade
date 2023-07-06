@@ -31,7 +31,7 @@ CSP = csp |>
             inscritos_05_14 = sum(inscritos_05_14), inscritos_45_64 = sum(inscritos_45_64),
             inscritos_65_74 = sum(inscritos_65_74), inscritos_75m = sum(inscritos_75m),
             inscritos = sum(inscritos),
-            n_polos = sum(n_polos)) |>
+            n_polos = sum(n_polos), app_remote = sum(app_remote), app_dome = sum(app_dome)) |>
     mutate(prop_nofam_MF = 1 - (inscritos_MF/inscritos), # proportion of citizens without family doctor, proxy for illness incidennce due to less prevention.  
            prop_fem = inscritos_fem/ inscritos, # proportion of female citizens, proxy for a higher demand of healthcare services *why? 
            prop_age_0_4 = inscritos_00_04/inscritos, 
@@ -39,10 +39,11 @@ CSP = csp |>
            prop_age_5_14 = inscritos_05_14/ inscritos,
            prop_age_45_64 = inscritos_45_64/ inscritos, 
            prop_age_65_74 = inscritos_65_74/ inscritos,
-           prop_age_75_hig = inscritos_75m/ inscritos) |>
+           prop_age_75_hig = inscritos_75m/ inscritos,
+           avg_staff = staff/inscritos) |>
   select(aces, year ,azo,  staff, app, n_polos, prop_nofam_MF, 
          prop_fem, prop_age_0_4, prop_age_5_14, prop_age_45_64, prop_age_65_74, 
-         prop_age_75_hig) |>
+         prop_age_75_hig, inscritos, app_remote, app_dome, avg_staff) |>
   ungroup() 
 
 # 2. Exporting Data -------------------------------------------------------

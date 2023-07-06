@@ -1069,7 +1069,7 @@ setwd("1.per_year")
       print(summary_table_latex, file = file_path, include.rownames = FALSE, caption.placement = "top")
     }
   
-    setwd("..")
+    setwd("../..")
   
   ## 2. Summary tables per Azores/Madeira ---------------------------------
   dir.create("2.Portugal_Islands")
@@ -1078,12 +1078,12 @@ setwd("1.per_year")
   # A. Create summary tables for each year using loop
   # Create an empty list to store the summary tables
   summary_list = list()
-  
-  for (azo in 0:1) {
+  CSH$azo = as.factor(CSH$azo)
+  for (azo_level in levels(CSH$azo)) {
     
     # Filter the data for the current year
     filtered_data <- CSH |>
-      filter(azo == azo)
+      filter(azo == azo_level)
     
     # Calculate the summary statistics for variables Costs
     operational_summary = filtered_data |>
@@ -1104,6 +1104,15 @@ setwd("1.per_year")
                 q25 = quantile(operational_ACSS, 0.25, na.rm = TRUE),
                 q75 = quantile(operational_ACSS, 0.75, na.rm = TRUE))
     
+    operational_ACSS_pop = filtered_data |>
+      summarise(variable = "Operational ACSS Costs per population",
+                mean = mean(avg_operational_pop, na.rm = TRUE),
+                sd = sd(avg_operational_pop, na.rm = TRUE),
+                min = min(avg_operational_pop, na.rm = TRUE),
+                max = max(avg_operational_pop, na.rm = TRUE),
+                q25 = quantile(avg_operational_pop, 0.25, na.rm = TRUE),
+                q75 = quantile(avg_operational_pop, 0.75, na.rm = TRUE))
+    
     staff_summary = filtered_data |>
       summarise(variable = "Staff Costs",
                 mean = mean(staff, na.rm = TRUE),
@@ -1121,6 +1130,15 @@ setwd("1.per_year")
                 max = max(staff_adjusted, na.rm = TRUE),
                 q25 = quantile(staff_adjusted, 0.25, na.rm = TRUE),
                 q75 = quantile(staff_adjusted, 0.75, na.rm = TRUE))
+    
+    staff_pop = filtered_data |>
+      summarise(variable = "Staff Costs per population",
+                mean = mean(avg_staff_pop, na.rm = TRUE),
+                sd = sd(avg_staff_pop, na.rm = TRUE),
+                min = min(avg_staff_pop, na.rm = TRUE),
+                max = max(avg_staff_pop, na.rm = TRUE),
+                q25 = quantile(avg_staff_pop, 0.25, na.rm = TRUE),
+                q75 = quantile(avg_staff_pop, 0.75, na.rm = TRUE))
     
     pharma_summary = filtered_data |>
       summarise(variable = "Pharmaceuticals Cost",
@@ -1223,19 +1241,20 @@ setwd("1.per_year")
                 q75 = quantile(mean_wait, 0.75, na.rm = TRUE))
     
     # Combine the summary tables into a single table
-    summary_table = bind_rows(operational_summary, operational_ACSS_summary, 
-                              staff_adj_summary, staff_summary, pharma_summary,
+    summary_table = bind_rows(operational_summary, operational_ACSS_summary, operational_ACSS_pop,
+                              staff_adj_summary, staff_summary, staff_pop, pharma_summary,
                               medicine_summary, materials_summary, fse_summary, 
                               app_summary, surge_summary, in_days_summary,
                               urge_summary,RO_summary ,beds_summary, wait_days_summary)
     
     # Add the summary table to the list
-    summary_list[[azo+1]] = summary_table
+    summary_list[[as.integer(azo_level)+1]] = summary_table
     
     # Save each summary table as a PDF file
-    pdf(paste0("summary_table_", azo, ".pdf"), width = 12, height = 6)
+    pdf(paste0("summary_table_", as.integer(azo_level), ".pdf"), width = 12, height = 6)
     grid.table(summary_table, rows = NULL)
     dev.off()
+    
   }
   
   # B. Latex tables
@@ -1257,10 +1276,13 @@ setwd("1.per_year")
     file_path = file.path(getwd(), file_name)
     
     print(summary_table_latex, file = file_path, include.rownames = FALSE, caption.placement = "top")
+    
+    # and as csv file
+    write.csv(summary_list[[i]], file = paste0("summary_table_", i, ".csv"))
   }
   
 # ---------------- END ------------------------
 # Go back to project's working directory
-setwd("../../../../../..")
+setwd("../../../../..")
 rm(list = ls())
   
