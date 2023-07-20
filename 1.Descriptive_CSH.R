@@ -11,7 +11,7 @@ library(viridis)
 
 # load data
 load("0.DataBase/CSH.RData")
-
+load("0.DataBase/pop.RData")
 # I. Scatter Plots (reference year) ----------------------------------------
 
 # Create a folder for Descriptive statistics plots and set as new working directory
@@ -1069,7 +1069,7 @@ setwd("1.per_year")
       print(summary_table_latex, file = file_path, include.rownames = FALSE, caption.placement = "top")
     }
   
-    setwd("..")
+    setwd("../..")
   
   ## 2. Summary tables per Azores/Madeira ---------------------------------
   dir.create("2.Portugal_Islands")
@@ -1078,12 +1078,14 @@ setwd("1.per_year")
   # A. Create summary tables for each year using loop
   # Create an empty list to store the summary tables
   summary_list = list()
+  CSH$azo = as.factor(CSH$azo)
   
-  for (azo in 0:1) {
+  
+  for (azo_level in levels(CSH$azo)) {
     
     # Filter the data for the current year
     filtered_data <- CSH |>
-      filter(azo == azo)
+      filter(azo == azo_level)
     
     # Calculate the summary statistics for variables Costs
     operational_summary = filtered_data |>
@@ -1222,21 +1224,108 @@ setwd("1.per_year")
                 q25 = quantile(mean_wait, 0.25, na.rm = TRUE),
                 q75 = quantile(mean_wait, 0.75, na.rm = TRUE))
     
+    beds_summary = filtered_data |>
+      summarise(variable = "Beds",
+                mean = mean(beds, na.rm = TRUE),
+                sd = sd(beds, na.rm = TRUE),
+                min = min(beds, na.rm = TRUE),
+                max = max(beds, na.rm = TRUE),
+                q25 = quantile(beds, 0.25, na.rm = TRUE),
+                q75 = quantile(beds, 0.75, na.rm = TRUE))
+    
+    fem_summary = filtered_data |>
+      summarise(variable = "prop fem",
+                mean = mean(fem, na.rm = TRUE),
+                sd = sd(fem, na.rm = TRUE),
+                min = min(fem, na.rm = TRUE),
+                max = max(fem, na.rm = TRUE),
+                q25 = quantile(fem, 0.25, na.rm = TRUE),
+                q75 = quantile(fem, 0.75, na.rm = TRUE))
+    
+    den_summary = filtered_data |>
+      summarise(variable = "den pop",
+                mean = mean(den, na.rm = TRUE),
+                sd = sd(den, na.rm = TRUE),
+                min = min(den, na.rm = TRUE),
+                max = max(den, na.rm = TRUE),
+                q25 = quantile(den, 0.25, na.rm = TRUE),
+                q75 = quantile(den, 0.75, na.rm = TRUE))
+    
+    aging_summary = filtered_data |>
+      summarise(variable = "aging index",
+                mean = mean(aging, na.rm = TRUE),
+                sd = sd(aging, na.rm = TRUE),
+                min = min(aging, na.rm = TRUE),
+                max = max(aging, na.rm = TRUE),
+                q25 = quantile(aging, 0.25, na.rm = TRUE),
+                q75 = quantile(aging, 0.75, na.rm = TRUE))
+    
+    npolos_summary = filtered_data |>
+      summarise(variable = "n_polos",
+                mean = mean(n_polos, na.rm = TRUE),
+                sd = sd(n_polos, na.rm = TRUE),
+                min = min(n_polos, na.rm = TRUE),
+                max = max(n_polos, na.rm = TRUE),
+                q25 = quantile(n_polos, 0.25, na.rm = TRUE),
+                q75 = quantile(n_polos, 0.75, na.rm = TRUE))
+    
+    ## Average Tables 
+    pop = pop |> group_by(year) |>
+      summarise(pop =sum(pop,na.rm = TRUE))
+    
+    sum_table = CSH |>
+      group_by(year) |>
+      summarise(variable = "avg_operational ACSS",
+                operational_ACSS =sum(operational_ACSS,na.rm = TRUE))
+    
+    sum_table = full_join(sum_table,pop,by= "year") 
+    sum_table = sum_table |> mutate(avg_operational_ACSS = operational_ACSS/pop) |>
+      select(-c(pop, operational_ACSS)) |>
+      summarise(mean = mean(avg_operational_ACSS, na.rm = TRUE),
+                sd = sd(avg_operational_ACSS, na.rm = TRUE),
+                min = min(avg_operational_ACSS, na.rm = TRUE),
+                max = max(avg_operational_ACSS, na.rm = TRUE),
+                q25 = quantile(avg_operational_ACSS, 0.25, na.rm = TRUE),
+                q75 = quantile(avg_operational_ACSS, 0.75, na.rm = TRUE))
+    
+    
+    
     # Combine the summary tables into a single table
     summary_table = bind_rows(operational_summary, operational_ACSS_summary, 
-                              staff_adj_summary, staff_summary, pharma_summary,
+                              staff_adj_summary, staff_summary, staff_pop, pharma_summary,
                               medicine_summary, materials_summary, fse_summary, 
                               app_summary, surge_summary, in_days_summary,
-                              urge_summary,RO_summary ,beds_summary, wait_days_summary)
+                              urge_summary,RO_summary ,beds_summary, wait_days_summary,
+                              npolos_summary, aging_summary, den_summary, fem_summary,
+                              beds_summary, sum_table, sum_table2)
     
     # Add the summary table to the list
-    summary_list[[azo+1]] = summary_table
+    summary_list[[as.integer(azo_level)+1]] = summary_table
     
     # Save each summary table as a PDF file
-    pdf(paste0("summary_table_", azo, ".pdf"), width = 12, height = 6)
+    pdf(paste0("summary_table_", as.integer(azo_level), ".pdf"), width = 12, height = 6)
     grid.table(summary_table, rows = NULL)
     dev.off()
+    
   }
+  
+  pop = pop |> group_by(year) |>
+    summarise(pop =sum(pop,na.rm = TRUE))
+
+  sum_table = CSH |>
+    group_by(year) |>
+    summarise(variable = "avg_operational ACSS",
+              operational_ACSS =sum(operational_ACSS,na.rm = TRUE))
+  
+  sum_table = full_join(sum_table,pop,by= "year") 
+  sum_table = sum_table |> mutate(avg_operational_ACSS = operational_ACSS/pop) |>
+    select(-c(pop, operational_ACSS)) |>
+    summarise(mean = mean(avg_operational_ACSS, na.rm = TRUE),
+              sd = sd(avg_operational_ACSS, na.rm = TRUE),
+              min = min(avg_operational_ACSS, na.rm = TRUE),
+              max = max(avg_operational_ACSS, na.rm = TRUE),
+              q25 = quantile(avg_operational_ACSS, 0.25, na.rm = TRUE),
+              q75 = quantile(avg_operational_ACSS, 0.75, na.rm = TRUE))
   
   # B. Latex tables
   dir.create("latex")
@@ -1257,10 +1346,13 @@ setwd("1.per_year")
     file_path = file.path(getwd(), file_name)
     
     print(summary_table_latex, file = file_path, include.rownames = FALSE, caption.placement = "top")
+    
+    # and as csv file
+    write.csv(summary_list[[i]], file = paste0("summary_table_", i, ".csv"))
   }
   
 # ---------------- END ------------------------
 # Go back to project's working directory
-setwd("../../../../../..")
+setwd("../../../../..")
 rm(list = ls())
   

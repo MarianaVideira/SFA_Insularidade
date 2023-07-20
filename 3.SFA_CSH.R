@@ -717,7 +717,8 @@ library(gridExtra)
         group_by(year) |>
         summarise(operational_ACSS = sum(operational_ACSS), in_days = sum(in_days), RO = mean(RO), 
                   surg = sum(surg), wait_scheduled_surg = sum(wait_scheduled_surg), 
-                  aging = mean(aging), fem = mean(fem), den = sum(den)) |>
+                  aging = mean(aging), fem = mean(fem), den = sum(den),
+                  pop = mean(pop)) |>
       distinct(year, .keep_all = TRUE) |>
       mutate(n_polos = 3, azo = 1, hospital = "hospital_azores") |>
       mutate(azo = as.factor(azo), year = as.numeric(year)) 
@@ -725,7 +726,7 @@ library(gridExtra)
       # Panel for SFA analysis
       CSH_panel = CSH |> 
         filter(azo== 0) |>
-        select(hospital, year,operational_ACSS, in_days, azo, 
+        select(hospital, year,operational_ACSS, in_days, azo,
                surg, wait_scheduled_surg, n_polos, den, fem, aging) |>
         drop_na() 
         
@@ -739,14 +740,9 @@ library(gridExtra)
         cor()
       
     ### B Define functional forms -----------------------------------------
-    form = log(operational_ACSS) ~ log(in_days) +  log(surg) + log(wait_scheduled_surg) + n_polos 
-    formt = log(operational_ACSS) ~ log(in_days) + log(surg) + I((log(in_days)^2)/2) + log(wait_scheduled_surg) + n_polos
-    
-    # Firm level inefficiencies models BC95
-    # mean inefficiency of u_it is "determined" by factors z_it
-    formz = log(operational_ACSS) ~ log(in_days)  + log(surg)  | fem + den + aging  + n_polos
-    formtz = log(operational_ACSS) ~ log(in_days) + I((log(in_days)^2)/2) | fem + den + aging  + n_polos
-    
+    form = log(operational_ACSS) ~ log(in_days) + log(surg) + log(wait_scheduled_surg) + n_polos
+    formz = log(operational_ACSS) ~ log(in_days)  + log(surg) |  fem + den + aging + wait_scheduled_surg
+
   ## 2. Operational Cost function -----------------------------------------
     ### 2.1 Estimation: time invariant inefficiencies ---------------------
       #### A. Cobb-Douglas (form) ----------------------------------------
@@ -758,16 +754,7 @@ library(gridExtra)
                      printIter = 1 )
       summary(sfront, extraPar = TRUE)
       
-      #### B. Trans log (formt) ------------------------------------------
-      sfrontt = sfa( formt,  
-                      data = CSH_panel,
-                      ineffDecrease = F, # FALSE for cost function and TRUE for production
-                      truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
-                      timeEffect = FALSE, # time is allowed to have an effect on efficiency
-                      printIter = 1 )
-      summary(sfrontt)
-      
-      #### C. Cobb-Douglas with z_it (formz) ------------------------------
+      #### B. Cobb-Douglas with z_it (formz) ------------------------------
       sfrontz = sfa( formz,  
                       data = CSH_panel,
                       ineffDecrease = F, # FALSE for cost function and TRUE for production
@@ -775,15 +762,6 @@ library(gridExtra)
                       timeEffect = FALSE, # time is allowed to have an effect on efficiency
                       printIter = 1 )
       summary(sfrontz)
-      
-      #### D. Trans log with z_it (formtz) --------------------------------
-      sfronttz = sfa( formtz,  
-                       data = CSH_panel,
-                       ineffDecrease = F, # FALSE for cost function and TRUE for production
-                       truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
-                       timeEffect = FALSE, # time is allowed to have an effect on efficiency
-                       printIter = 1 )
-      summary(sfronttz)
       
   ## 3. Table -------------------------------------------------------------
     # BC 92/95
@@ -808,12 +786,12 @@ library(gridExtra)
     #run the same specifications using a linear model 
     # (remember to change the "|" before the z variables to a "+" in the linear model):
     lm1 = lm(form, data = CSH_panel)
-    lm2 = lm(log(operational_ACSS) ~ log(in_days)  + log(surg) + log(fem) + fem + den + aging  + n_polos, data = CSH_panel)
+    lm2 = lm(log(operational_ACSS) ~ log(in_days)  + log(surg) + log(fem) + fem + den + aging + wait_scheduled_surg, data = CSH_panel)
     
     #Finally, use stargazer on the linear models, and change the coefficients and the standard errors reported using the "coef" and "se" arguments:
     stargazer(lm1, lm2,
               coef = list(c1,c2), 
-              se = list(c1,c2),
+              se = list(pv1,pv2),
               p = list(pv1,pv2),
               t.auto = FALSE,
               p.auto = FALSE,
@@ -829,9 +807,9 @@ library(gridExtra)
                                c("Log-likelihood value", ll1,ll2),
                                c("Mean efficiency", me1, me2)),
               covariate.labels = c("Constant","$\\log \\text{inpatient days}$", 
-                                   "$\\log \\text{surgeries}$", "$\\log \\text{wait secheduled surgeries}$",
+                                   "$\\log \\text{surgeries}$", "$\\log \\text{wait secheduled surgeries}$", "nº of hospitals",
                                    "$\\log$ Z Constant", "Proportion female", "Population density",
-                                   "Aging index", "nº of hospitals"))
+                                   "Aging index"))
     
   ## 4. Azores Prediction: Dummy Frontier ---------------------------------
     ### 4.1 Prediction HC -------------------------------------------------
@@ -851,7 +829,7 @@ library(gridExtra)
       
       # SFA Z
       prediction_sfaz = data.frame(predict = exp(predict(sfrontz, newdata = hosp_centre)),
-                                   year = rownames(data.frame(predict(sfronttz, newdata = hosp_centre))),
+                                   year = rownames(data.frame(predict(sfrontz, newdata = hosp_centre))),
                                    hospital = "hospital_azores" ) |>
         mutate( year = str_remove(year, "-.*")) |>
         rename("predict_sfaz" = "predict")
@@ -872,7 +850,7 @@ library(gridExtra)
         rename("predict_sfa" = "predict")
       # SFA Z
       prediction_sfaz = data.frame(predict = exp(predict(sfrontz, newdata = CSH_predict)),
-                                   hospital = rownames(data.frame(predict(sfronttz, newdata = CSH_predict)))) |>
+                                   hospital = rownames(data.frame(predict(sfrontz, newdata = CSH_predict)))) |>
         separate("hospital", c("hospital", "year"),sep = "-") |>
         rename("predict_sfaz" = "predict")
       
@@ -949,10 +927,12 @@ library(gridExtra)
              Innef_Cost_Isl = (1-efficiency_sfa)*predict_sfa,
              Innef_Cost_Isl_z = (1-efficiency_sfaz)*predict_sfaz,
              overcost =  Innef_Cost_Isl- Inef_Cost_Cont,
-             overcostz = Innef_Cost_Isl_z - Inef_Cost_Cont_z) |>
+             overcostz = Innef_Cost_Isl_z - Inef_Cost_Cont_z,
+             mean_overcost = overcost/pop,
+             op_pop = operational_ACSS/pop) |>
       select(hospital, year, operational_ACSS, predict_sfa, predict_sfaz, efficiency_sfa,
              efficiency_sfaz, Inef_Cost_Cont, Inef_Cost_Cont_z, Innef_Cost_Isl,
-             Innef_Cost_Isl_z, overcost, overcostz)
+             Innef_Cost_Isl_z, overcost, overcostz, mean_overcost, op_pop)
     
     # C. Save to directory 
     write.csv(CSH_predict_Azor, "CSH_predict_overcost_Azores.csv", row.names = FALSE)
@@ -972,21 +952,21 @@ library(gridExtra)
 
   ## 5. Graphic Representation --------------------------------------------
     ### A. Database for graph
-    CSH_predict = CSH_predict |> mutate(pred_overcost = predict_sfaz + overcostz)
-    d = CSH_predict |> select(azo, predict_sfa, predict_sfaz, pred_overcost)
+    CSH_predict = CSH_predict |> mutate(pred_overcost = predict_sfa + overcost)
+    d = CSH_predict |> select(azo, predict_sfa, predict_sfa, pred_overcost, overcostz, overcost)
     
     ggplot(data = filter(CSH_predict, year == 2018), aes(x = in_days, y = operational_ACSS, color = azo)) +
       geom_point(alpha = 0.7) +
-      xlim(0, 1e+06) +
-      ylim(0, 1e+09) +
-      geom_line(data = filter(CSH_predict, azo == 0), aes(y = predict_sfaz), linetype = "dashed", color = "lightgreen") +
+      xlim(0, 2e+06) +
+      ylim(0, 2e+09) +
+      geom_line(data = filter(CSH_predict, azo == 0), aes(y = predict_sfa), linetype = "dashed", color = "lightgreen") +
       geom_point(data = filter(CSH_predict, azo == 1, year == 2018), aes(x = in_days, y = pred_overcost), color = "red", shape = 4, size = 3) +
       geom_segment(data = filter(CSH_predict, azo == 1, year == 2018), aes(x = in_days, y = predict_sfa, xend = in_days, yend = pred_overcost), color = "red", linetype = "dotted") +
       geom_segment(data = filter(CSH_predict, azo == 1, year == 2018), aes(x = in_days, y = pred_overcost, xend = in_days, yend = operational_ACSS), color = "blue", linetype = "dotted") +
       geom_point(data = filter(CSH_predict, azo == 1, year == 2018), aes(x = in_days, y = predict_sfa), color = "pink") +
       labs(x = "Consultas", y = "Custos com Pessoal", title = "Fronteira Estocástica", caption = "Note: This graphic depict a Cobb Douglas cost function for the year 2018." ) +
       scale_color_manual(values = c("1" = "lightblue", "0" = "lightgreen"),
-                         labels = c("Portugal Continental", "Açores"),
+                         labels = c("Açores", "Portugal Continental"),
                          name = "")
     ggsave(filename = "CDgraph_eff_pred.png", plot = last_plot(), width = 10, height = 8, dpi = 300)
     
@@ -996,59 +976,49 @@ library(gridExtra)
       geom_point(alpha = 0.7) +
       xlim(0, 500000) +
       ylim(0, 2.5e+08) +
-      geom_line(data = filter(CSH_predict, azo == 0), aes(y = predict_sfaz), linetype = "dashed", color = "lightgreen") +
+      #geom_line(data = filter(CSH_predict, azo == 0), aes(y = predict_sfa), linetype = "dashed", color = "lightgreen") +
       geom_point(data = filter(CSH_predict, azo == 1, year == 2018), aes(x = in_days, y = pred_overcost), color = "red", shape = 4, size = 3) +
       geom_segment(data = filter(CSH_predict, azo == 1, year == 2018), aes(x = in_days, y = predict_sfa, xend = in_days, yend = pred_overcost), color = "red", linetype = "dotted") +
       geom_segment(data = filter(CSH_predict, azo == 1, year == 2018), aes(x = in_days, y = pred_overcost, xend = in_days, yend = operational_ACSS), color = "blue", linetype = "dotted") +
       geom_point(data = filter(CSH_predict, azo == 1, year == 2018), aes(x = in_days, y = predict_sfa), color = "pink") +
       labs(x = "Consultas", y = "Custos com Pessoal", title = "Fronteira Estocástica", caption = "Note: This graphic depict a Cobb Douglas cost function for the year 2018." ) +
       scale_color_manual(values = c("1" = "lightblue", "0" = "lightgreen"),
-                         labels = c("Portugal Continental", "Açores"),
+                         labels = c("Açores", "Portugal Continental"),
                          name = "")
     ggsave(filename = "CDgraph_eff_pred_zoom.png", plot = last_plot(), width = 10, height = 8, dpi = 300)
   
 # IV. SFA Portugal Continent for Staff Costs ------------------------------
-## 1. Data -----------------------------------------------------------------
-rm(list = setdiff(ls(), "CSH"))
-  setwd("..")
-  dir.create("3. Portugal Frontier (staff)")
-  setwd("3. Portugal Frontier (staff)")
-  ### A. Variables and Functional form ------------------------------------
-  ### B. Select variables and test correlation --------------------------
-    CSH_0 = CSH |> select(hospital, year, staff, in_days, RO, azo, region, 
-                          surg, app, urge, patient_dis, wait_scheduled_surg) |> 
-      drop_na()
+  ## 1. Data -----------------------------------------------------------------
+  rm(list = setdiff(ls(), "CSH"))
+    setwd("..")
+    dir.create("4. Portugal Frontier (staff)")
+    setwd("4. Portugal Frontier (staff)")
+  
+    ### B. Select variables and test correlation --------------------------
+      CSH_0 = CSH |> select(hospital, year, staff, in_days, RO, azo, region, 
+                            surg, app, urge, beds, patient_dis, wait_scheduled_surg) |> 
+        drop_na()
+      
+      # correlation testing RO
+      corr_table = CSH_0 |> 
+        select(staff, in_days, RO,beds, surg, app, urge, 
+               patient_dis, wait_scheduled_surg) |> 
+        cor()
+      
+      # Discard volume variables that have high correlation 
+      #(choosen the scale variable will capture the effects of the others)
+      CSH_0 = CSH |> select(hospital, year, staff, in_days, RO, azo, region, surg,
+                            n_polos, fem, den, aging, wait_scheduled_surg) |> 
+        filter(azo == 0) |>
+        drop_na()
+      
+    ### A. Variables and Functional form ------------------------------------
+    form = log(staff) ~ log(in_days) +  log(surg) + log(wait_scheduled_surg) + n_polos
+    formz = log(staff) ~ log(in_days)  + log(surg) |  fem + den + aging + wait_scheduled_surg
     
-    # correlation testing RO
-    corr_table = CSH_0 |> 
-      select(staff, cmvmc, in_days, RO, surg, app, urge, 
-             patient_dis, wait_scheduled_surg) |> 
-      cor()
-    
-    # Discard volume variables that have high correlation 
-    #(choosen the scale variable will capture the effects of the others)
-    CSH_0 = CSH |> select(hospital, year, staff, in_days, RO, azo, region, 
-                          wait_scheduled_surg) |> 
-      filter(azo == 0) |>
-      drop_na()
-# STOPPED HERE ---------------   
-    ### B. Panel data -----------------------------------------------------
+    ### C. Panel data -----------------------------------------------------
     CSH_panel = pdata.frame(CSH_0, c("hospital", "year"))
-  ## 1.2 Define functional forms ------------------------------------------
-    form = log(operational) ~ log(in_days) + log(surg) + log(urge) + log(RO) # includes Dummy variable
-    formt = log(operational) ~ log(in_days) + log(surg) + I((log(in_days)^2)/2) + I((log(surg)^2)/2) + log(urge) + log(RO)
-    
-    # Firm level inefficiencies models BC95
-    # mean inefficiency of u_it is "determined" by factors z_it
-    formz = log(operational) ~ log(in_days) + log(surg) + log(urge) | RO + wait_scheduled_surg
-    formtz = log(operational) ~ log(in_days) + log(surg) + log(urge) + I((log(in_days)^2)/2) + I((log(surg)^2)/2) | RO + wait_scheduled_surg
-    
-    # FE model G05 (Greene)
-    # time invariant individual heterogeneity is not separate from individual innefficieny
-    form_r = log(operational) ~ log(in_days) + log(surg) + log(urge) + log(RO) + factor(region) 
-    formt_r = log(operational) ~ log(in_days) + log(surg) + I((log(in_days)^2)/2) + I((log(surg)^2)/2) + log(urge) + log(RO) + factor(region) 
-    
-# 2. Operational Cost function : Continent --------------------------------
+  ## 2. Operational Cost function : Continent -----------------------------
   ## 2.1 Estimation: time invariant inefficiencies ------------------------
     ### A. Cobb-Douglas (form) ----------------------------------------------
     sfront = sfa( form,  
@@ -1059,16 +1029,7 @@ rm(list = setdiff(ls(), "CSH"))
                   printIter = 1 )
     summary(sfront, extraPar = TRUE)
     
-    ### B. Trans log (formt) -------------------------------------------------
-    sfrontt = sfa( formt,  
-                   data = CSH_panel,
-                   ineffDecrease = F, # FALSE for cost function and TRUE for production
-                   truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
-                   timeEffect = FALSE, # time is allowed to have an effect on efficiency
-                   printIter = 1 )
-    summary(sfrontt)
-    
-    ### C. Cobb-Douglas with z_it (formz) -------------------------------------
+    ### B. Cobb-Douglas with z_it (formz) -------------------------------------
     sfrontz = sfa( formz,  
                    data = CSH_panel,
                    ineffDecrease = F, # FALSE for cost function and TRUE for production
@@ -1077,127 +1038,8 @@ rm(list = setdiff(ls(), "CSH"))
                    printIter = 1 )
     summary(sfrontz)
     
-    ### D. Trans log with z_it (formtz) --------------------------------------
-    sfronttz = sfa( formtz,  
-                    data = CSH_panel,
-                    ineffDecrease = F, # FALSE for cost function and TRUE for production
-                    truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
-                    timeEffect = FALSE, # time is allowed to have an effect on efficiency
-                    printIter = 1 )
-    summary(sfronttz)
-    
-    ### E. Cobb-Douglas with FE by region (form_r) ----------------------------
-    sfrontr = sfa( form_r,  
-                   data = CSH_panel,
-                   ineffDecrease = F, # FALSE for cost function and TRUE for production
-                   truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
-                   timeEffect = FALSE, # time is allowed to have an effect on efficiency
-                   printIter = 1 )
-    summary(sfrontr)
-    
-    ### F. Trans Log with FE by region (form_r) ------------------------------
-    sfronttr = sfa( formt_r,  
-                    data = CSH_panel,
-                    ineffDecrease = F, # FALSE for cost function and TRUE for production
-                    truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
-                    timeEffect = FALSE, # time is allowed to have an effect on efficiency
-                    printIter = 1 )
-    summary(sfronttr)
-    
-# 3. Tables ---------------------------------------------------------------
-  ### A. BC92 -------------------------------------------------------------
-  # Creative approach to export SFA tables (since normal packages don't support format)
-  # save the coefficients and p-v as vectors:
-  c1 = as.vector(coef(sfront))
-  c2 = as.vector(coef(sfrontt))
-  
-  pv1 = as.vector(coef(summary(sfront))[,4])
-  pv2 = as.vector(coef(summary(sfrontt))[,4])
-  
-  # save gamma parameter, nº of time periods, log-likelihood and mean efficiency
-  g1 = round(as.vector(coef(summary(sfront, extraPar = TRUE))[nrow(coef(summary(sfront, extraPar = TRUE))),1]), 3)
-  g2 = round(as.vector(coef(summary(sfrontt, extraPar = TRUE))[nrow(coef(summary(sfront, extraPar = TRUE))),1]),3)
-  
-  ll1 = round(as.numeric(logLik(sfront, which = "mle")),3)
-  ll2 = round(as.numeric(logLik(sfrontt, which = "mle")),3)
-  
-  me1 = round(summary(sfrontz)$efficMean,3)
-  me2 = round(summary(sfronttz)$efficMean,3)
-  
-  #run the same specifications using a linear model 
-  # (remember to change the "|" before the z variables to a "+" in the linear model):
-  lm1 = lm(form, data = CSH_panel)
-  lm2 = lm(formt, data = CSH_panel)
-  
-  #Finally, use stargazer on the linear models, and change the coefficients and the standard errors reported using the "coef" and "se" arguments:
-  stargazer(lm1, lm2,
-            coef = list(c1,c2), 
-            se = list(c1,c2),
-            p = list(pv1,pv2),
-            t.auto = FALSE,
-            p.auto = FALSE,
-            intercept.bottom = FALSE,
-            digits = 3, float.env = "table",
-            dep.var.labels=c("$\\log$ Operational Costs"),
-            title = "Stochastic Frontier: Hospital Healthcare",
-            column.labels = c("Cobb-Douglas", "Translog"),
-            model.numbers = TRUE,
-            out = "SFAregression_table_CSH.tex",
-            omit.stat = c("rsq", "adj.rsq", "ser", "f"),
-            add.lines = list(c("Gamma", g1, g2), 
-                             c("Log-likelihood value", ll1,ll2),
-                             c("Mean efficiency", me1, me2)),
-            covariate.labels = c("Constant","$\\log \\text{inpatient days}$", "$\\log$ surgeries",
-                                 "$(\\log \\text{inpatient days}) ^2$","$(\\log \\text{surgeries}) ^2$", 
-                                 "$\\log$ urgencies", "$\\log$ Rate of Occupancy"))
-  
-  summary(sfront)
-  ### B. BC95 -------------------------------------------------------------
-  # Creative approach to export SFA tables (since normal packages don't support format)
-  # save the coefficients and p-v as vectors:
-  c1 = as.vector(coef(sfrontz))
-  c2 = as.vector(coef(sfronttz))
-  
-  pv1 = as.vector(coef(summary(sfrontz))[,4])
-  pv2 = as.vector(coef(summary(sfronttz))[,4])
-  
-  # save gamma parameter, nº of time periods, log-likelihood and mean efficiency
-  g1 = round(as.vector(coef(summary(sfrontz, extraPar = TRUE))[9,1]), 3)
-  g2 = round(as.vector(coef(summary(sfronttz, extraPar = TRUE))[9,1]),3)
-  
-  ll1 = round(as.numeric(logLik(sfrontz, which = "mle")),3)
-  ll2 = round(as.numeric(logLik(sfronttz, which = "mle")),3)
-  
-  me1 = round(summary(sfrontz)$efficMean,3)
-  me2 = round(summary(sfronttz)$efficMean,3)
-  
-  #run the same specifications using a linear model 
-  # (remember to change the "|" before the z variables to a "+" in the linear model):
-  lm1 = lm(log(operational) ~ log(in_days)  + azo + log(RO) + RO + wait_scheduled_surg, data = CSH_panel)
-  lm2 = lm(log(operational) ~ log(in_days) + I((log(in_days)^2)/2) + azo + log(RO) + RO + wait_scheduled_surg, data = CSH_panel)
-  
-  #Finally, use stargazer on the linear models, and change the coefficients and the standard errors reported using the "coef" and "se" arguments:
-  stargazer(lm1, lm2,
-            coef = list(c1,c2), 
-            p = list(pv1,pv2),
-            se = list(pv1,pv2),
-            t.auto = FALSE,
-            p.auto = FALSE,
-            intercept.bottom = FALSE,
-            digits = 3, float.env = "table",
-            dep.var.labels=c("$\\log$ Operational Costs"),
-            title = "Stochastic Frontier: Hospital Healthcare",
-            column.labels = c("Cobb-Douglas", "Translog"),
-            model.numbers = TRUE,
-            out = "SFAregressionz_table_CSH.tex",
-            omit.stat = c("rsq", "adj.rsq", "ser", "f"),
-            add.lines = list(c("Gamma", g1, g2), 
-                             c("Log-likelihood value", ll1,ll2),
-                             c("Mean efficiency", me1, me2)),
-            covariate.labels = c("Constant", "$\\log \\text{inpatient days}$", "$\\log$ surgeries",
-                                 "$\\log$ urgencies", "$(\\log \\text{inpatient days}) ^2$", 
-                                 "$\\log \\text{surgeries} ^2$", 
-                                 "Z Constant", "Rate of Occupancy", "Wait for Scheduled Surgeries"))
+  ## 3. Tables ------------------------------------------------------------
+## STOP HERE COMPLETE TABLES ----
 # V. Tests ----------------------------------------------------------------
 warnings()  
 setwd("../../..")
