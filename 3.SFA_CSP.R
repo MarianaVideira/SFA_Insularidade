@@ -1020,22 +1020,24 @@ library(gridExtra)
     innefz_P = 1-round(summary(sfrontz)$efficMean,3)
     
     # B. Table with over costs
-    CSP_predict= CSP_predict |>
+    CSP_predict = CSP_predict |>
         mutate(Inef_Cost_Cont = innef_P * predict_sfa, 
                Inef_Cost_Cont_z = innefz_P * predict_sfaz,
                Innef_Cost_Isl = (1-efficiency_sfa)*predict_sfa,
                Innef_Cost_Isl_z = (1-efficiency_sfa_z)*predict_sfaz,
                overcost =  Innef_Cost_Isl- Inef_Cost_Cont,
                overcostz = Innef_Cost_Isl_z - Inef_Cost_Cont_z,
-               mean_overz = overcostz/inscritos)
+               mean_overz = overcostz/inscritos,
+               pess_insc = staff/inscritos)
     
     Azo_CSP_predict_sum = CSP_predict |> filter(azo == 1) |>
     group_by(aces) |>
-    summarise( staff = sum(staff), 
+    summarise(staff = sum(staff), 
               Inef_Cost_Cont = sum (Inef_Cost_Cont), Inef_Cost_Cont_z = sum(Inef_Cost_Cont_z),
               Innef_Cost_Isl = sum(Innef_Cost_Isl), Innef_Cost_Isl_z = sum(Innef_Cost_Isl_z),
               overcost = sum(overcost), overcostz = sum(overcostz),
-              mean_overz = mean(mean_overz)) |>
+              mean_overz = mean(mean_overz),
+              mean_pess_insc = mean(pess_insc)) |>
       distinct()
     write.csv(Azo_CSP_predict_sum, "CSP_predict_Azo_sum.csv", row.names = FALSE)
     

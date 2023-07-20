@@ -223,7 +223,7 @@ for (azo_level in levels(CSP$azo)) {
               q75 = quantile(app_dome, 0.75, na.rm = TRUE))
   
   inscritos_summary <- filtered_data |>
-    summarise(variable = "numer of citizens",
+    summarise(variable = "number of citizens",
               mean = mean(inscritos, na.rm = TRUE),
               sd = sd(inscritos, na.rm = TRUE),
               obs = n(),
@@ -232,9 +232,61 @@ for (azo_level in levels(CSP$azo)) {
               q25 = quantile(inscritos, 0.25, na.rm = TRUE),
               q75 = quantile(inscritos, 0.75, na.rm = TRUE))
   
+  MD_summary = filtered_data |>
+    summarise(variable = "proportion without FD",
+              mean = mean(prop_nofam_MF, na.rm = TRUE),
+              sd = sd(prop_nofam_MF, na.rm = TRUE),
+              obs = n(),
+              min = min(prop_nofam_MF, na.rm = TRUE),
+              max = max(prop_nofam_MF, na.rm = TRUE),
+              q25 = quantile(prop_nofam_MF, 0.25, na.rm = TRUE),
+              q75 = quantile(prop_nofam_MF, 0.75, na.rm = TRUE))
+  
+  age_75_summary = filtered_data |>
+    summarise(variable = "proportion with 75more",
+              mean = mean(prop_age_75_hig, na.rm = TRUE),
+              sd = sd(prop_age_75_hig, na.rm = TRUE),
+              obs = n(),
+              min = min(prop_age_75_hig, na.rm = TRUE),
+              max = max(prop_age_75_hig, na.rm = TRUE),
+              q25 = quantile(prop_age_75_hig, 0.25, na.rm = TRUE),
+              q75 = quantile(prop_age_75_hig, 0.75, na.rm = TRUE))
+  
+  age_0_4_summary = filtered_data |>
+    summarise(variable = "proportion 00-04",
+              mean = mean(prop_age_0_4, na.rm = TRUE),
+              sd = sd(prop_age_0_4, na.rm = TRUE),
+              obs = n(),
+              min = min(prop_age_0_4, na.rm = TRUE),
+              max = max(prop_age_0_4, na.rm = TRUE),
+              q25 = quantile(prop_age_0_4, 0.25, na.rm = TRUE),
+              q75 = quantile(prop_age_0_4, 0.75, na.rm = TRUE))
+  
+  npolos_summary = filtered_data |>
+    summarise(variable = "number of centers",
+              mean = mean(n_polos, na.rm = TRUE),
+              sd = sd(n_polos, na.rm = TRUE),
+              obs = n(),
+              min = min(n_polos, na.rm = TRUE),
+              max = max(n_polos, na.rm = TRUE),
+              q25 = quantile(n_polos, 0.25, na.rm = TRUE),
+              q75 = quantile(n_polos, 0.75, na.rm = TRUE))
+  
+  fem_summary = filtered_data |>
+    summarise(variable = "fem prop",
+              mean = mean(prop_fem, na.rm = TRUE),
+              sd = sd(prop_fem, na.rm = TRUE),
+              obs = n(),
+              min = min(prop_fem, na.rm = TRUE),
+              max = max(prop_fem, na.rm = TRUE),
+              q25 = quantile(prop_fem, 0.25, na.rm = TRUE),
+              q75 = quantile(prop_fem, 0.75, na.rm = TRUE))
+  
+  
   # Combine the summary tables into a single table
   summary_table = bind_rows(summary_table, avg_staff_table, inscritos_summary, app_dome_summary, 
-                            app_rem_summary, app_summary)
+                            app_rem_summary, app_summary, fem_summary, npolos_summary, age_0_4_summary, 
+                            age_75_summary, MD_summary)
   
   # Add the summary table to the list
   summary_list[[as.integer(azo_level) + 1]] = summary_table

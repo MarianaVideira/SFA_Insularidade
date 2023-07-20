@@ -11,7 +11,7 @@ library(stringr)
 
 # 0. Data import ----------------------------------------------------------
 # A. Data for continent
-hospitals_fin = read_csv2("data/CSH/1. ACSS/agregados-economico-financeiros.csv") # for semicolon separated values
+hospitals_fin = read_csv("data/CSH/1. ACSS/operacionais.csv") # for semicolon separated values
 hospitals_ur = read_csv2("data/CSH/1. ACSS/atendimentos-em-urgencia-triagem-manchester.csv")
 hospitals_in = read_csv2("data/CSH/1. ACSS/atividade-de-internamento-hospitalar.csv") # inpatient days
 hospitals_OR = read_csv2("data/CSH/1. ACSS/ocupacao-do-internamento.csv") # Occupancy rate
@@ -36,27 +36,19 @@ hospitals_wait = read_csv2("data/CSH/1. ACSS/demora-media-antes-da-cirurgia.csv"
   key_hosp = read_excel("data/CSH/5. GDH/keys/key_hosp.xlsx")
   key_region = read_excel("data/CSH/5. GDH/keys/key_region.xlsx")
   characteristics = read_csv("data/CSH/7. Characterization/characteristics.csv")
+  pop = read_excel("data/CSH/7. Characterization/pop.xlsx")
 
-# C. Data for Açores
+# C. Data for Açores and Madeira
 hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv") 
 
 # D. Data for Madeira
+hospitals_mad = read_csv("data/CSH/8. Madeira/mad.csv")
 
 # 1. Tidy Data ------------------------------------------------------------
   ## 1.1 Operational Costs -------------------------------------------------
   hospitals_fin = hospitals_fin |>
-    separate("Período", c("year", "month"), "-") |>
-    separate("Localização Geográfica", c("geo_lat", "geo_lon"), ",") |>
-    rename("region" = "Região", "hospital" = "Entidade",
-                   "operational" = "Gastos Operacionais") |>
-    mutate(year = as.numeric(year), month = as.numeric(month), 
-           operational_ACSS = abs(as.numeric(operational))) |>
-    select(c(operational_ACSS, region, year, month, hospital)) |>
-    drop_na() |>
-    group_by(hospital, year, region) |>
-    filter(n() == 12) |>
-    summarise(operational_ACSS = sum(operational_ACSS)) |>
-    ungroup() 
+    pivot_longer(!c(hospital,case_mix), names_to = "year", values_to = "operational_ACSS") |>
+    mutate(year = as.numeric(year))
 
   ## 1.2 Operational Costs (Benchmarking) ------------------------------------
   c_operational = c_operational|>
@@ -174,9 +166,17 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
       mutate(year = as.numeric(year), month = as.numeric(month), 
              patient_dis = as.numeric(patient_dis)) |>
       select(c(types_beds, patient_dis, region, year, month, hospital)) |>
+      mutate(hospital = ifelse(hospital == "Hospital de Vila Franca de Xira, PPP", 
+                               "Hospital de Vila Franca de Xira", hospital),
+             hospital = ifelse(hospital == "Hospital de Vila Franca de Xira, EPE", 
+                               "Hospital de Vila Franca de Xira", hospital),
+             hospital = ifelse(hospital == "Hospital de Braga, EPE", 
+                               "Hospital de Braga", hospital),
+             hospital = ifelse(hospital == "Hospital de Braga, PPP", 
+                               "Hospital de Braga", hospital)) |>
       drop_na() |>
       group_by(hospital, year, region, types_beds)  |>
-      filter(n() == 12) |>
+      #filter(n() == 12) |>
       summarise(patient_dis = sum(patient_dis)) |>
       pivot_wider(names_from = types_beds, values_from = patient_dis) |>
       rename( "d1" = "Especialidade Cirurgica", 
@@ -194,12 +194,18 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
                "R_ocuppancy" = "Taxa Anual de Ocupação em Internamento") |>
         mutate(year = as.numeric(year), month = as.numeric(month), 
                in_days = as.numeric(in_days),
-               R_ocuppancy = R_ocuppancy/100) |>
-        drop_na() |>
-        group_by(hospital, year, region) |>
-        filter(n() == 12) |>
-        summarise( R_ocuppancy = mean(R_ocuppancy), in_days = sum(in_days)) |>
-        ungroup()
+               R_ocuppancy = R_ocuppancy/100,
+               hospital = ifelse(hospital == "Hospital de Vila Franca de Xira, PPP", 
+                                        "Hospital de Vila Franca de Xira", hospital),
+               hospital = ifelse(hospital == "Hospital de Vila Franca de Xira, EPE", 
+                                        "Hospital de Vila Franca de Xira", hospital),
+               hospital = ifelse(hospital == "Hospital de Braga, EPE", 
+                                 "Hospital de Braga", hospital),
+               hospital = ifelse(hospital == "Hospital de Braga, PPP", 
+                                 "Hospital de Braga", hospital)) |>
+        filter(month == 12) |>
+        select(year, hospital, region, in_days, R_ocuppancy)
+
       
     ### C. Urgent care ------------------------------------------------------
       hospitals_ur = hospitals_ur |>
@@ -214,7 +220,15 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
              "n6" = "Nº Atendimentos em Urgência SU Triagem Manchester -Branca",
              "n7" = "Nº Atendimentos s\\ Triagem Manchester") |>
       mutate(year = as.numeric(year), month = as.numeric(month),
-             urge = n1 + n2 + n3 + n4 + n5 + n6 + n7) |>
+             urge = rowSums(across(c(n1, n2, n3, n4, n5, n6, n7)), na.rm = TRUE) ,
+             hospital = ifelse(hospital == "Hospital de Vila Franca de Xira, PPP", 
+                                      "Hospital de Vila Franca de Xira", hospital),
+             hospital = ifelse(hospital == "Hospital de Vila Franca de Xira, EPE", 
+                                      "Hospital de Vila Franca de Xira", hospital),
+             hospital = ifelse(hospital == "Hospital de Braga, EPE", 
+                               "Hospital de Braga", hospital),
+             hospital = ifelse(hospital == "Hospital de Braga, PPP", 
+                               "Hospital de Braga", hospital)) |>
       drop_na() |>
       group_by(hospital, year, region)  |>
       filter(n() == 12) |>
@@ -227,34 +241,37 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
              "app" = "Nº Consultas Médicas Total") |>  
       separate("Período", c("year", "month"), "-")|>
       mutate(year = as.numeric(year), month = as.numeric(month),
-             app = as.numeric(app)) |>
+             app = as.numeric(app),
+             hospital = ifelse(hospital == "Hospital de Vila Franca de Xira, PPP", 
+                                      "Hospital de Vila Franca de Xira", hospital),
+             hospital = ifelse(hospital == "Hospital de Vila Franca de Xira, EPE", 
+                                      "Hospital de Vila Franca de Xira", hospital),
+             hospital = ifelse(hospital == "Hospital de Braga, EPE", 
+                               "Hospital de Braga", hospital),
+             hospital = ifelse(hospital == "Hospital de Braga, PPP", 
+                               "Hospital de Braga", hospital)) |>
       drop_na() |>
-      group_by(hospital, year, region) |>
-      filter(n() == 12) |>
-      summarise( app = sum(app)) |>
-      ungroup()
-    
-
+      filter(month == 12) |>
+      select(year, app, hospital, region)
+      
     ### E. Beds ------------------------------------------------------------
     hospitals_beds = hospitals_beds |>
       select(-c("Localização Geográfica")) |>
       separate("Período", c("year", "month"), "-") |>
       mutate(year = as.numeric(year), month = as.numeric(month))|>
       rename("region" = "Região", "hospital" = "Instituição", "num_beds" = "Lotação",
-             "types_beds" = "Tipo de Camas",) |>
+             "types_beds" = "Tipo de Camas") |>
+      mutate(hospital = ifelse(hospital == "Hospital de Vila Franca de Xira, PPP", 
+                               "Hospital de Vila Franca de Xira", hospital),
+             hospital = ifelse(hospital == "Hospital de Vila Franca de Xira, EPE", 
+                               "Hospital de Vila Franca de Xira", hospital),
+             hospital = ifelse(hospital == "Hospital de Braga, EPE", 
+                               "Hospital de Braga", hospital),
+             hospital = ifelse(hospital == "Hospital de Braga, PPP", 
+                               "Hospital de Braga", hospital)) |>
       drop_na() |>
-      group_by(hospital, year, region, types_beds)  |>
-      filter(n() == 12) |>
-      summarise(  beds = mean(num_beds)) |>
-      pivot_wider(names_from = types_beds, values_from = beds) |>
-      select(-c("Camas Neutras")) |>
-      drop_na() |>
-      rename( "cir" = "Camas Cirúrgicas",
-              "med" = "Camas Médicas",
-              "out" = "Outras Camas") |>
-      mutate( beds = cir + med + out) |>
-      select(-c(cir, med, out)) |>
-      ungroup()
+      group_by(hospital, year, region)  |>
+      summarise(  beds = mean(num_beds,na.rm = TRUE)) 
 
     ### F. Surgeries --------------------------------------------------------
     hospitals_surg = hospitals_surg |>
@@ -264,16 +281,20 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
              "surg_a" = "Nº Intervenções Cirúrgicas de Ambulatório",
              "surg_u" = "Nº Intervenções Cirúrgicas Urgentes") |>   
       separate("Período", c("year", "month"), "-") |>
-      mutate(year = as.numeric(year), month = as.numeric(month)) |>
-      drop_na() |>
-      group_by(hospital, year, region) |>
-      filter(n() == 12) |>
-      summarise( surg_p = sum(surg_p), 
-                 surg_c = sum(surg_c), 
-                 surg_a = sum(surg_a),
-                 surg_u = sum(surg_u)) |>
-      mutate( surg = surg_p + surg_u) |> # total surgeries
-      ungroup()
+      mutate(year = as.numeric(year), month = as.numeric(month),
+             hospital = ifelse(hospital == "Hospital de Vila Franca de Xira, PPP", 
+                                      "Hospital de Vila Franca de Xira", hospital),
+             hospital = ifelse(hospital == "Hospital de Vila Franca de Xira, EPE", 
+                                      "Hospital de Vila Franca de Xira", hospital),
+             hospital = ifelse(hospital == "Hospital de Braga, EPE", 
+                               "Hospital de Braga", hospital),
+             hospital = ifelse(hospital == "Hospital de Braga, PPP", 
+                               "Hospital de Braga", hospital)) |>
+      filter(month == 12) |>
+      mutate( surg = rowSums(across(c(surg_p, surg_u)), na.rm = TRUE),
+              prop_surg_a = surg_a/surg) |> # total surgeries
+      select(year, hospital, region, surg, prop_surg_a)
+      
     
     ## 1.7 Characteristics - Municipality ----------------------------------
     key_mun = full_join(key_mun,key_region, by ="distrito") |> select(-distrito_nome) |>
@@ -302,21 +323,31 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
     # join with characteristics
     characteristics = full_join(municipios, characteristics, by = c("municipio")) 
     write.csv(characteristics, file = "car.csv")
-    # generate population by region
-    pop_region =  characteristics |>
-      group_by(region) |>
-      summarise(pop = sum(pop, na.rm = TRUE)) 
     
     characteristics =  characteristics |>
       drop_na(total) |> 
       filter(prop_utentes > 0.2) |>
-      mutate(den = prop_utentes*den, fem = prop_utentes*Fem, aging = prop_utentes*aging,
+      mutate(den = prop_utentes*den, fem = prop_utentes*prop_fem, aging = prop_utentes*aging,
              desemp = prop_utentes*desemp, wage = prop_utentes*wage) |>
-      group_by(hospital, year) |>
+      group_by(hospital,hosp_id, year) |>
       summarise(den = mean(den), fem = mean(fem), aging = mean(aging), desemp = mean(desemp),
                 wage = mean(wage))
-  
-    ## 1.8 Check missing months -------------------------------------------------
+    
+    char_aco = characteristics |> filter(hosp_id %in% c("HDES", "HORT", "HSEI")) |>
+      group_by(year) |> 
+      summarise(den = mean(den), fem = mean(fem), aging = mean(aging), desemp = mean(desemp),
+                wage = mean(wage), hospital = "Hospital Açores", hosp_id = "HCRA") 
+    
+    characteristics = characteristics |> filter(!(hosp_id %in% c("HDES", "HORT", "HSEI")))
+    characteristics = bind_rows(characteristics, char_aco) 
+    
+    ## 1.8 Characteristics - Population ------------------------------------
+    
+    pop = pop |>
+      pivot_longer(!c(hospital, cod_hosp), names_to = "year", values_to = "pop") |>
+      mutate(year = as.numeric(year))
+    
+    ## 1.9 Check missing months -------------------------------------------------
     check_missing_months <- function(data) {
       missing_months <- data |>
         drop_na() |>  # Check for each of the variables if needed
@@ -329,7 +360,7 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
   
   check_missing_months(hospitals_ur)
 
-# 2. Joining data frames --------------------------------------------------
+# 2. Joining data frames ---------------------------------------------------
 ## 2.1 Rename hospitals ----------------------------------------------------
 # function
   rename_hospitals <- function(data) {
@@ -346,6 +377,8 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
                           hospital = ifelse(hospital == "Centro Hospitalar Universitário do Algarve, E.P.E",
                                             "Centro Hospitalar Universitário do Algarve,EPE", hospital),
                           hospital = ifelse(hospital == "Centro Hospitalar Vila Nova Gaia/Espinho, EPE", 
+                                            "Centro Hospitalar Vila Nova de Gaia/Espinho, EPE", hospital),
+                          hospital = ifelse(hospital == "Centro Hospitalar de Vila Nova de Gaia/Espinho, EPE", 
                                             "Centro Hospitalar Vila Nova de Gaia/Espinho, EPE", hospital),
                           hospital = ifelse(hospital == "Hospital Arcebispo João Crisóstomo - Cantanhede", 
                                             "Hospital Arcebispo João Crisóstomo", hospital),
@@ -380,6 +413,8 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
                           hospital = ifelse(hospital == "Centro Hospitalar do Barreiro - Montijo, EPE", 
                                             "Centro Hospitalar Barreiro/Montijo, EPE", hospital),
                           hospital = ifelse(hospital == "Centro Hospitalar Barreiro/Montijo, E.P.E.", 
+                                            "Centro Hospitalar Barreiro/Montijo, EPE", hospital),
+                          hospital = ifelse(hospital == "Centro Hospitalar Barreiro Montijo, EPE", 
                                             "Centro Hospitalar Barreiro/Montijo, EPE", hospital),
                           hospital = ifelse(hospital == "Centro Hospitalar do Oeste, EPE", 
                                             "Centro Hospitalar do Oeste", hospital),
@@ -441,6 +476,8 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
                                             "Centro Hospitalar de Setúbal, EPE", hospital),
                           hospital = ifelse(hospital == "Centro Hospitalar de Tras-os-Montes e Alto Douro, E.P.E.", 
                                             "Centro Hospitalar Trás-os-Montes e Alto Douro, EPE", hospital),
+                          hospital = ifelse(hospital == "Centro Hospitalar de Trás-os-Montes e Alto Douro, EPE", 
+                                            "Centro Hospitalar Trás-os-Montes e Alto Douro, EPE", hospital),
                           hospital = ifelse(hospital == "Centro Hospitalar do Baixo Vouga, E.P.E.", 
                                             "Centro Hospitalar do Baixo Vouga, EPE", hospital),
                           hospital = ifelse(hospital == "Centro Hospitalar do Médio Ave, E.P.E.", 
@@ -453,10 +490,18 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
                                             "Centro Hospitalar Tâmega e Sousa, EPE", hospital),
                           hospital = ifelse(hospital == "Centro Hospitalar Tondela-Viseu, E.P.E.", 
                                             "Centro Hospitalar Tondela-Viseu, EPE", hospital),
+                          hospital = ifelse(hospital == "Centro Hospitalar Tondela Viseu, EPE", 
+                                            "Centro Hospitalar Tondela-Viseu, EPE", hospital),
                           hospital = ifelse(hospital == "HPP Hospital de Cascais, Dr. José de Almeida", 
-                                            "Hospital de Cascais, PPP", hospital),
+                                            "Hospital de Cascais", hospital),
+                          hospital = ifelse(hospital == "Hospital de Cascais, PPP", 
+                                            "Hospital de Cascais", hospital),
                           hospital = ifelse(hospital == "Hospital Beatriz Ângelo - Loures", 
-                                            "Hospital de Loures", hospital))
+                                            "Hospital de Loures", hospital),
+                          hospital = ifelse(hospital == "Centro Hospitalar do Médio Tejo, EPE", 
+                                            "Centro Hospitalar Médio Tejo, EPE", hospital),
+                          hospital = ifelse(hospital == "Hospital Espírito Santo de Évora, EPE", 
+                                            "Hospital do Espírito Santo de Évora, EPE", hospital))
     return(data)
   }
 
@@ -477,11 +522,12 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
   c_fse = rename_hospitals(c_fse)
   c_materials = rename_hospitals(c_materials)
   characteristics = rename_hospitals(characteristics)
+  pop = rename_hospitals(pop)
   
-## 2.2 Joining DB -------------------------------------------------------------
-
+## 2.2 Joining DB ---------------------------------------------------------
+  ### A. Joining tables for Continent ---------------------------------------
   # Join all data frames from ACSS in list
-  list_df = list(hospitals_fin, hospitals_ur, hospitals_in, hospitals_OR, hospitals_app,
+  list_df = list(hospitals_ur, hospitals_in, hospitals_OR, hospitals_app,
                  hospitals_beds, hospitals_surg, hospitals_wait)
   
   CSH = list_df |> 
@@ -493,35 +539,70 @@ hospitals_aco = read.csv("data/CSH/3. Açores/Açores.csv")
   
   # join all databases from benchmarking
   list_df = list(CSH, c_operational, c_staff, c_staff_adjusted,
-                 c_pharma, c_medicine, c_fse, c_materials)
+                 c_pharma, c_medicine, c_fse, c_materials, hospitals_fin, pop)
   CSH = list_df |> 
     reduce(function(x, y) full_join(x, y, by = c("hospital" = "hospital",
                                                  "year" = "year"), 
                                     .init = NULL)) |> 
-    filter(year > 2014)  |> mutate(azo = 0)
+    filter(year > 2014)  |> mutate(azo = 0, mad = 0)
     
-  # C. Join data Açores and mainland 
-  hospitals_aco = hospitals_aco |>
-    mutate(azo = 1 , operational_ACSS = operational)
-  CSH = bind_rows(CSH, hospitals_aco)
-  CSH$azo = factor(CSH$azo)
+  ### B. Joining tables from Azores ----------------------------------------
+  hospitals_aco = hospitals_aco |> 
+    group_by(year) |>
+    summarise(app = sum(app,na.rm = TRUE), surg = sum(surg, na.rm = TRUE), 
+              in_days = sum(in_days, na.rm = TRUE), patient_dis = sum(patient_dis),
+              urge = sum(urge), day_app = sum(day_app), operational = sum(operational), cmvmc = sum(cmvmc), 
+              staff = sum(staff), beds = sum(beds), pharma = sum(pharma), materials = sum(materials), 
+              fse = sum(fse), wait_scheduled_surg = mean(wait_scheduled_surg), wait_app = mean(wait_app, na.rm = TRUE)) |>
+    ungroup() |>
+    mutate(azo = 1 , mad = 0, operational_ACSS = operational,
+           azo = as.factor(azo), mad = as.factor(mad),
+           region = "Região de Saúde dos Açores",
+           hospital = "Hospital Açores")
   
-  # D. Join polos, characteristics and population per region
+  hospitals_aco = hospitals_aco |> inner_join(pop, by = c("hospital", "year")) 
+  
+  CSH = CSH |> filter(cod_hosp != 46, cod_hosp != 47) |>
+    mutate(azo = as.factor(azo),
+           mad = as.factor(mad))
+  CSH = bind_rows(CSH, hospitals_aco)
+  
+  ### C. Joining tables from Madeira ---------------------------------------
+  hospitals_mad = hospitals_mad |>
+    mutate(region = "Região de Saúde da Madeira",
+           mad = 1 , azo = 0, operational_ACSS = operational,
+           mad = as.factor(mad), azo = as.factor(mad))
+
+  CSH = bind_rows(CSH, hospitals_mad)
+  
+  ### D. Join polos, characteristics ---------------------------------------
   CSH = full_join(CSH, characteristics, by = c("hospital", "year"))
   CSH = full_join(CSH, n_polos, by = "hospital")
-  CSH = full_join(CSH, pop_region, by = "region")
   
-  # D. Create new Rate of Occupancy
-  CSH = CSH |> mutate(RO = in_days/ (beds*30.4375*12), region = as.factor(region),
-                      avg_operational_pop = operational_ACSS/pop, 
-                      avg_staff = staff/pop) |>
-    filter(!str_detect(hospital, "^Instituto Português de Oncologia")) |>
-    mutate(avg_operational_ACSS = operational_ACSS/pop, avg_staff_pop = staff/pop) |>
-    drop_na(hospital, year)
+  ### E. Create new Rate of Occupancy --------------------------------------
+  CSH = CSH |> mutate(RO = in_days/ (beds*30.4375*12)) |>
+    filter(!str_detect(hospital, "^Instituto Português de Oncologia"),
+           !str_detect(hospital, "Centro Hospitalar Psiquiátrico de Lisboa")) |>
+    mutate(region = case_when(
+      hospital == "Hospital Madeira" ~ "Região de Saúde da Madeira",
+      TRUE ~ region )) |>
+    mutate(id_region_NUTSII = case_when(
+            region == "Região de Saúde do Algarve" ~ "PT15",
+            region == "Região de Saúde do Alentejo" ~ "PT18",
+            region == "Região de Saúde LVT" ~ "PT17",
+            region == "Região de Saúde do Centro" ~ "PT16",
+            region == "Região de Saúde Norte" ~ "PT11",
+            region == "Região de Saúde dos Açores" ~ "PT20",
+            region == "Região de Saúde da Madeira" ~ "PT30",
+            TRUE ~ NA_character_)) |>
+    drop_na(hospital, year, cod_hosp) |>
+    select(-c(day_app, wait_app, cmvmc, dp, avg_operational, avg_fse, avg_staff,
+              avg_staff_adjusted, avg_pharma, avg_medicine, medicine, pharma, materials,
+              operational, staff_adjusted))
   
 # 3. Exporting Data -------------------------------------------------------
 save(CSH, file= "0.DataBase/CSH.RData")
-write.csv(CSH, file = "filename.csv")
+write.csv(CSH, file = "0.DataBase/csh.csv")
 
 ###### END #####
 rm(list=ls())

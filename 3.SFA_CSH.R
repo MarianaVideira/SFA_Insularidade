@@ -928,10 +928,11 @@ library(gridExtra)
              Innef_Cost_Isl_z = (1-efficiency_sfaz)*predict_sfaz,
              overcost =  Innef_Cost_Isl- Inef_Cost_Cont,
              overcostz = Innef_Cost_Isl_z - Inef_Cost_Cont_z,
-             mean_overcost = overcost/pop) |>
+             mean_overcost = overcost/pop,
+             op_pop = operational_ACSS/pop) |>
       select(hospital, year, operational_ACSS, predict_sfa, predict_sfaz, efficiency_sfa,
              efficiency_sfaz, Inef_Cost_Cont, Inef_Cost_Cont_z, Innef_Cost_Isl,
-             Innef_Cost_Isl_z, overcost, overcostz, mean_overcost)
+             Innef_Cost_Isl_z, overcost, overcostz, mean_overcost, op_pop)
     
     # C. Save to directory 
     write.csv(CSH_predict_Azor, "CSH_predict_overcost_Azores.csv", row.names = FALSE)
