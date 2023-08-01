@@ -22,19 +22,18 @@ library(gridExtra)
     ### A. Select variables and test correlation ----------------------------
   CSP_1 = CSP |> select(aces, year, azo, staff, app, 
                         n_polos, prop_nofam_MF, prop_fem, prop_age_0_4,
-                        prop_age_5_14, prop_age_45_64, prop_age_65_74, prop_age_75_hig) |> 
+                         prop_age_65_hig) |> 
     drop_na()
   
   corr_table = CSP_1 |> 
     select(staff, app, n_polos, prop_nofam_MF, prop_fem,
-           prop_age_0_4, prop_age_5_14, prop_age_45_64, prop_age_65_74, prop_age_75_hig) |> 
+           prop_age_0_4,prop_age_65_hig) |> 
     cor()
   
   # Discard volume variables that have high correlation 
   #(choosen the scale variable will capture the effects of the others)
   CSP_0 = CSP |> select(aces, year, azo, staff, app, n_polos, prop_nofam_MF, 
-                        prop_fem, prop_age_0_4,prop_age_5_14, prop_age_45_64, 
-                        prop_age_65_74, prop_age_75_hig) |> 
+                        prop_fem, prop_age_0_4, prop_age_65_hig) |> 
     filter(azo == 0) |>
     drop_na()
       
@@ -42,13 +41,13 @@ library(gridExtra)
     CSP_panel = pdata.frame(CSP_0, c("aces", "year"))
     
     ### C. Define functional forms ------------------------------------------
-    form = log(staff) ~ log(app) + log(prop_age_45_64)+ log(prop_age_75_hig)
-    formt = log(staff) ~ log(app) + I((log(app)^2)/2) + log(prop_age_45_64)+ log(prop_age_75_hig) 
+    form = log(staff) ~ log(app) +  log(prop_age_65_hig)
+    formt = log(staff) ~ log(app) + I((log(app)^2)/2) +log(prop_age_65_hig) 
     
     # Firm level inefficiencies models BC95
     # mean inefficiency of u_it is "determined" by factors z_it
-    formz = log(staff) ~ log(app) + log(n_polos) | prop_nofam_MF + prop_age_75_hig  + prop_age_0_4 
-    formtz = log(staff) ~ log(app) + I((log(app)^2)/2) + log(n_polos) | prop_nofam_MF + prop_age_45_64+ prop_age_75_hig + prop_age_5_14 + prop_age_0_4 + prop_fem
+    formz = log(staff) ~ log(app) + log(n_polos) | prop_nofam_MF + prop_age_65_hig  + prop_age_0_4 
+    formtz = log(staff) ~ log(app) + I((log(app)^2)/2) + log(n_polos) | prop_nofam_MF + prop_age_65_hig  + prop_age_0_4 + prop_fem
     
   ## 2. Staff Cost Function: Cross section --------------------------------
     ### 2.1 Estimation Portugal Continent 2016-2018 -----------------------
@@ -283,8 +282,8 @@ library(gridExtra)
     
     #run the same specifications using a linear model 
     # (remember to change the "|" before the z variables to a "+" in the linear model):
-    lm1 = lm(log(staff) ~ log(app) + log(n_polos) + log(prop_age_45_64) + prop_nofam_MF + prop_age_45_64+ prop_age_75_hig + prop_age_5_14 + prop_age_0_4 + prop_fem, data = CSP_panel)
-    lm2 = lm(log(staff) ~ log(app) + I((log(app)^2)/2) + log(n_polos) + log(prop_age_45_64) + prop_nofam_MF + prop_age_45_64+ prop_age_75_hig + prop_age_5_14 + prop_age_0_4 + prop_fem, data = CSP_panel)
+    lm1 = lm(log(staff) ~ log(app) + log(n_polos) + prop_nofam_MF + prop_age_65_hig + prop_age_0_4 + prop_fem, data = CSP_panel)
+    lm2 = lm(log(staff) ~ log(app) + I((log(app)^2)/2) + log(n_polos) + prop_nofam_MF + prop_age_65_hig + prop_age_0_4 + prop_fem, data = CSP_panel)
     
     summary(sfrontz)
     summary(sfronttz)
@@ -308,8 +307,7 @@ library(gridExtra)
                                c("Mean efficiency", me1, me2)),
               covariate.labels = c("Constant","$\\log \\text{Appointments}$","$(\\log \\text{Appointments}) ^2$", 
                                    "$\\log$ nº of Polos", "Z Constant","proportion without FD",
-                                   "proportion ages 45-64", "proportion ages 75+",
-                                   "proportion ages 05-14", "proportion ages 00-04", 
+                                   "proportion ages 65+","proportion ages 00-04", 
                                    "proportion female"))
   
     
@@ -352,8 +350,7 @@ library(gridExtra)
     
     ## 5.2 Prediction Azores Island -----------------------------------------
     CSP_panel_a = CSP |> select(aces, year, azo, staff, app, n_polos, prop_nofam_MF, 
-                          prop_fem, prop_age_0_4,prop_age_5_14, prop_age_45_64, 
-                          prop_age_65_74, prop_age_75_hig) |> 
+                          prop_fem, prop_age_0_4, prop_age_65_hig) |> 
       filter(azo == 0) |> drop_na() |> pdata.frame(c("aces", "year"))
     
     CSP_predict_a = CSP_panel_a |> select(aces, year, staff) 
@@ -397,8 +394,7 @@ library(gridExtra)
     
     ## 5.5 Prediction Azores and Portugal ------------------------------------
     CSP_panel = CSP |> select(aces, year, azo, staff, app, n_polos, prop_nofam_MF, 
-                                prop_fem, prop_age_0_4,prop_age_5_14, prop_age_45_64, 
-                                prop_age_65_74, prop_age_75_hig) |> 
+                                prop_fem, prop_age_0_4, prop_age_65_hig) |> 
       drop_na() |> pdata.frame(c("aces", "year"))
     
     CSP_predict = CSP_panel |> select(aces, year, staff,azo)
@@ -490,8 +486,7 @@ library(gridExtra)
     setwd("2. Frontier w Azores Dummy (staff)")    
     ### A. Select variables and test correlation ----------------------------
     CSP_0 = CSP |> select(aces, year, azo, staff, app,
-                          n_polos, prop_nofam_MF, prop_fem, prop_age_0_4,
-                          prop_age_5_14, prop_age_45_64, prop_age_65_74, prop_age_75_hig) |> 
+                          n_polos, prop_nofam_MF, prop_fem, prop_age_0_4, prop_age_65_hig) |> 
       drop_na()
     
     ### B. Panel data -----------------------------------------------------
@@ -505,8 +500,8 @@ library(gridExtra)
     # Firm level inefficiencies models BC95
     # mean inefficiency of u_it is "determined" by factors z_it
     # formz = log(staff) ~ log(app)  + log(n_polos) + azo | prop_nofam_MF + prop_age_75_hig  + prop_age_0_4 
-    formz = log(staff) ~ log(app)  + log(n_polos) + azo | prop_nofam_MF + prop_age_75_hig  + prop_age_0_4 
-    formtz = log(staff) ~ log(app) + I((log(app)^2)/2) + log(n_polos) +azo | prop_nofam_MF + prop_age_45_64+ prop_age_75_hig  + prop_age_0_4 
+    formz = log(staff) ~ log(app)  + log(n_polos) + azo | prop_nofam_MF + prop_age_65_hig  + prop_age_0_4 
+    formtz = log(staff) ~ log(app) + I((log(app)^2)/2) + log(n_polos) +azo | prop_nofam_MF + prop_age_65_hig  + prop_age_0_4 
     
   ## 2. Operational Cost function: Panel Data --------------------------------
     ### 2.3 Estimation: time invariant inefficiencies ------------------------
@@ -615,8 +610,8 @@ library(gridExtra)
     
     #run the same specifications using a linear model 
     # (remember to change the "|" before the z variables to a "+" in the linear model):
-    lm1 = lm(log(staff) ~ log(app) + log(n_polos) + azo+ log(prop_age_45_64) + prop_nofam_MF + prop_age_45_64+ prop_age_75_hig + prop_age_0_4 , data = CSP_panel)
-    lm2 = lm(log(staff) ~ log(app) + I((log(app)^2)/2) + log(n_polos) +azo + log(prop_age_45_64) + prop_nofam_MF + prop_age_45_64+ prop_age_75_hig + prop_age_0_4 , data = CSP_panel)
+    lm1 = lm(log(staff) ~ log(app) + log(n_polos) + azo + log(prop_age_0_4) + prop_nofam_MF + prop_age_65_hig + prop_age_0_4 , data = CSP_panel)
+    lm2 = lm(log(staff) ~ log(app) + I((log(app)^2)/2) + log(n_polos) +azo + log(prop_age_0_4) + prop_nofam_MF + prop_age_65_hig + prop_age_0_4 , data = CSP_panel)
     
     #Finally, use stargazer on the linear models, and change the coefficients and the standard errors reported using the "coef" and "se" arguments:
     stargazer(lm1, lm2,
@@ -638,8 +633,7 @@ library(gridExtra)
                                c("Mean efficiency", me1, me2)),
               covariate.labels = c("Constant","$\\log \\text{Appointments}$","$(\\log \\text{Appointments}) ^2$", 
                                   "$\\log$ nº of polos", "Azores","Z Constant","proportion without FD",
-                                   "proportion ages 45-64", "proportion ages 75+",
-                                   "proportion ages 00-04"))
+                                   "proportion ages 65+","proportion ages 00-04"))
     
     ### C. BC95: dummy --------------------------------------------------------
     # Creative approach to export SFA tables (since normal packages don't support format)
@@ -662,8 +656,8 @@ library(gridExtra)
     me2 = round(summary(sfrontzd)$efficMean,3)
     #run the same specifications using a linear model 
     # (remember to change the "|" before the z variables to a "+" in the linear model):
-    lm1 = lm(log(staff) ~ log(app) + log(n_polos) + log(prop_age_45_64) + prop_fem +prop_nofam_MF + prop_age_75_hig  + prop_age_0_4 , data = CSP_panel)
-    lm2 = lm(log(staff) ~ log(app) + log(n_polos) + azo + log(prop_age_45_64) + prop_fem + prop_nofam_MF + prop_age_75_hig  + prop_age_0_4 , data = CSP_panel)
+    lm1 = lm(log(staff) ~ log(app) + log(n_polos) + log(prop_fem) + prop_fem +prop_nofam_MF + prop_age_65_hig  + prop_age_0_4 , data = CSP_panel)
+    lm2 = lm(log(staff) ~ log(app) + log(n_polos) + azo + log(prop_fem) + prop_fem + prop_nofam_MF + prop_age_65_hig  + prop_age_0_4 , data = CSP_panel)
     
     #Finally, use stargazer on the linear models, and change the coefficients and the standard errors reported using the "coef" and "se" arguments:
     stargazer(lm1, lm2,
@@ -685,7 +679,7 @@ library(gridExtra)
                                c("Mean efficiency", me1, me2)),
               covariate.labels = c("Constant", "$\\log \\text{appointments}$", "$\\log$ nº of polos",
                                    "Azores",
-                                   "Z Constant", "Proportion without FD", "Proportion ages 75+", "Proportion ages 0-4"))
+                                   "Z Constant", "Proportion without FD", "Proportion ages 65+", "Proportion ages 0-4"))
   
     ### D. BC92/95 --------------------------------------------------------
     # Creative approach to export SFA tables (since normal packages don't support format)
@@ -709,7 +703,7 @@ library(gridExtra)
     #run the same specifications using a linear model 
     # (remember to change the "|" before the z variables to a "+" in the linear model):
     lm1 = lm(form, data = CSP_panel)
-    lm2 = lm(log(staff) ~ log(app) + log(n_polos) + azo + log(prop_age_45_64)  + prop_nofam_MF + prop_age_75_hig  + prop_age_0_4 , data = CSP_panel)
+    lm2 = lm(log(staff) ~ log(app) + log(n_polos) + azo + log(prop_age_0_4)  + prop_nofam_MF + prop_age_65_hig  + prop_age_0_4 , data = CSP_panel)
     summary(sfrontzd)
     #Finally, use stargazer on the linear models, and change the coefficients and the standard errors reported using the "coef" and "se" arguments:
     stargazer(lm1, lm2,
@@ -731,7 +725,7 @@ library(gridExtra)
                                c("Mean efficiency", me1, me2)),
               covariate.labels = c("Constant","$\\log \\text{Appointments}$", "$\\log \\text{nº of polos}$",
                                    "Azores","Z Constant","proportion without FD",
-                                   "proportion ages 75+", "proportion ages 00-04"))
+                                   "proportion ages 65+", "proportion ages 00-04"))
     
   ## 4. Azores Prediction: Dummy Frontier ---------------------------------
     ### 4.1 Prediction ----------------------------------------------------
@@ -862,24 +856,23 @@ library(gridExtra)
     setwd("3. Portugal Frontier and Overcost Islands (staff)")    
     ### A. Select variables and test correlation ----------------------------
     CSP_panel = CSP |> 
-      filter(azo== 0) |>
-      select(aces, year, azo, staff, app, n_polos, prop_nofam_MF, 
-             prop_fem, prop_age_0_4,prop_age_5_14, prop_age_45_64, 
-             prop_age_65_74, prop_age_75_hig) |>
+      filter(azo== 0 & mad == 0) |>
+      select(aces, year, azo,mad, staff, app,app_enf, n_polos, prop_nofam_MF, 
+             prop_fem, prop_age_0_4,prop_age_65_hig) |>
       drop_na() 
     
     # Double-check correlation
     corr_table = CSP_panel |> 
-      select(staff, app, n_polos, prop_nofam_MF, prop_fem,
-             prop_age_0_4, prop_age_5_14, prop_age_45_64, prop_age_65_74, prop_age_75_hig) |> 
+      select(staff, app, app_enf, n_polos, prop_nofam_MF, prop_fem,
+             prop_age_0_4, prop_age_65_hig) |> 
       cor()
-    
+    write.csv(corr_table, file = "01.correlation_table.csv")
     ### B. Panel data -----------------------------------------------------
     CSP_panel = pdata.frame(CSP_panel, c("aces", "year"))
     
     ### C. Define functional forms ------------------------------------------
-    form = log(staff) ~ log(app) + log(n_polos)  
-    formz = log(staff) ~ log(app)   | prop_nofam_MF + prop_age_75_hig  + prop_age_0_4 + n_polos
+    form = log(staff) ~ log(app) + log(app_enf)
+    form2 = log(staff) ~ log(app) +  log(app_enf) + log(prop_age_65_hig)  
     
   ## 2. Operational Cost function: Panel Data --------------------------------
     ### 2.3 Estimation: time invariant inefficiencies ------------------------
@@ -892,44 +885,49 @@ library(gridExtra)
                    printIter = 1 )
     summary(sfront, extraPar = TRUE)
     
-    #### B. Cobb-Douglas with z_it (formz) -------------------------------------
-    sfrontz = sfa( formz,  
+    #### B. Cobb-Douglas (form2) ---------------------------------------------
+    sfront2 = sfa( form2,  
                     data = CSP_panel,
                     ineffDecrease = F, # FALSE for cost function and TRUE for production
                     truncNorm = FALSE, # FALSE -> errors have half normal distribution TRUE -> truncated distribution (mu parameter is added)
                     timeEffect = FALSE, # time is allowed to have an effect on efficiency
                     printIter = 1 )
-    summary(sfrontz, extraPar = TRUE)
+    summary(sfront2, extraPar = TRUE)
     
   ## 3. Tables for Panel Data ---------------------------------------------
     ### D. BC92/95 --------------------------------------------------------
+    dir.create("0.Latex Tables")
+    setwd("0.Latex Tables") 
     # Creative approach to export SFA tables (since normal packages don't support format)
     # save the coefficients and p-v as vectors:
     c1 = as.vector(coef(sfront))
-    c2 = as.vector(coef(sfrontz))
+    c2 = as.vector(coef(sfront2))
+    
+    se1 = as.vector(coef(summary(sfront))[,2])
+    se2 = as.vector(coef(summary(sfront2))[,2])
     
     pv1 = as.vector(coef(summary(sfront))[,4])
-    pv2 = as.vector(coef(summary(sfrontz))[,4])
+    pv2 = as.vector(coef(summary(sfront2))[,4])
     
     # save gamma parameter, log-likelihood and mean efficiency
     g1 = round(as.vector(coef(summary(sfront))[nrow(coef(summary(sfront))),1]), 3)
-    g2 = round(as.vector(coef(summary(sfrontz))[nrow(coef(summary(sfrontz))),1]),3)
+    g2 = round(as.vector(coef(summary(sfront2))[nrow(coef(summary(sfront2))),1]),3)
     
     ll1 = round(as.numeric(logLik(sfront, which = "mle")),3)
-    ll2 = round(as.numeric(logLik(sfrontz, which = "mle")),3)
+    ll2 = round(as.numeric(logLik(sfront2, which = "mle")),3)
     
     me1 = round(summary(sfront)$efficMean,3)
-    me2 = round(summary(sfrontz)$efficMean,3)
+    me2 = round(summary(sfront2)$efficMean,3)
     
     #run the same specifications using a linear model 
     # (remember to change the "|" before the z variables to a "+" in the linear model):
     lm1 = lm(form, data = CSP_panel)
-    lm2 = lm(log(staff) ~ log(app) + log(n_polos) + log(prop_age_45_64)  + prop_nofam_MF + prop_age_75_hig  + prop_age_0_4 , data = CSP_panel)
+    lm2 = lm(form2, data = CSP_panel)
 
     #Finally, use stargazer on the linear models, and change the coefficients and the standard errors reported using the "coef" and "se" arguments:
     stargazer(lm1, lm2,
               coef = list(c1,c2), 
-              se = list(pv1,pv2),
+              se = list(se1,se2),
               p = list(pv1,pv2),
               t.auto = FALSE,
               p.auto = FALSE,
@@ -944,10 +942,11 @@ library(gridExtra)
               add.lines = list(c("Gamma", g1, g2), 
                                c("Log-likelihood value", ll1,ll2),
                                c("Mean efficiency", me1, me2)),
-              covariate.labels = c("Constant","$\\log \\text{Appointments}$", "$\\log \\text{nº of polos}$",
-                                   "Z Constant","proportion without FD",
-                                   "proportion ages 75+", "proportion ages 00-04"))
+              covariate.labels = c("Constant","$\\log \\text{Appointments Doctors}$","$\\log \\text{Appointments Nurses}$", 
+                                   "$\\log$ proportion ages 75+"))
     
+  setwd("..")
+  # STOP HERE ----------------------  
   ## 4. Azores Prediction: Dummy Frontier ---------------------------------
     ### 4.1 Prediction ----------------------------------------------------
     CSP_predict = CSP |> pdata.frame( c("aces", "year"))
@@ -959,13 +958,13 @@ library(gridExtra)
       separate("aces", c("aces", "year"),sep = "-") |>
       rename("predict_sfa" = "predict")
     # SFA Z
-    prediction_sfaz = data.frame(predict = exp(predict(sfrontz, newdata = CSP_predict)),
-                                 aces = rownames(data.frame(predict(sfrontz, newdata = CSP_predict)))) |>
+    prediction_sfa2 = data.frame(predict = exp(predict(sfront2, newdata = CSP_predict)),
+                                 aces = rownames(data.frame(predict(sfront2, newdata = CSP_predict)))) |>
       separate("aces", c("aces", "year"),sep = "-") |>
-      rename("predict_sfaz" = "predict")
+      rename("predict_sfa2" = "predict")
     
     # B. Join all data frames 
-    list_df = list(CSP_predict, prediction_sfa, prediction_sfaz)
+    list_df = list(CSP_predict, prediction_sfa, prediction_sfa2)
     
     CSP_predict = list_df |> 
       reduce(function(x, y) full_join(x, y, by = c("aces" = "aces",
@@ -973,17 +972,17 @@ library(gridExtra)
                                       .init = NULL))
     
     # C. Differences
-    CSP_predict = CSP_predict |> mutate(difference = staff - predict_sfa, differencez = staff - predict_sfaz, 
+    CSP_predict = CSP_predict |> mutate(difference = staff - predict_sfa, difference2 = staff - predict_sfa2, 
                                         difference_perc_sfa = (staff - predict_sfa)/predict_sfa,
-                                        difference_perc_sfaz = (staff - predict_sfaz)/predict_sfaz)
+                                        difference_perc_sfa2 = (staff - predict_sfa2)/predict_sfa2)
     
     
     CSP_predict_summary = CSP_predict |> group_by(aces) |>
       summarise( staff = mean(staff), predict_sfa = mean(predict_sfa), difference = mean(difference),
-                 differencez = mean(differencez), difference_perc_sfa = differencez/mean(predict_sfa),
-                 difference_perc_sfaz = differencez/mean(predict_sfaz),
+                 difference2 = mean(difference2), difference_perc_sfa = difference/mean(predict_sfa),
+                 difference_perc_sfa2 = difference2/mean(predict_sfa2),
                  inscritos = mean(inscritos))
-    write.csv(CSP_predict_summary, "CSP_predict_summary.csv", row.names = FALSE)
+    write.csv(CSP_predict_summary, "02.CSP_predict_summary.csv", row.names = FALSE)
     
     ### 4.2 Efficiency ----------------------------------------------------
     # A. Efficiency tables
@@ -993,76 +992,88 @@ library(gridExtra)
       rename("efficiency_sfa" = "efficiency")
     
     # SFA Z
-    efficiencies_sfaz = data.frame(aces = rownames(efficiencies(sfrontz, newdata = CSP_predict)),
-                                   efficiency = efficiencies(sfrontz, newdata = CSP_predict)) |>
-      pivot_longer(c("efficiency.2015","efficiency.2016", "efficiency.2017", "efficiency.2018",
-                     "efficiency.2019", "efficiency.2020", "efficiency.2021", "efficiency.2022"),
-                   names_to = "year", values_to = "efficiency_sfa_z") |>
-      mutate( year = str_remove(year, ".*\\.")) # .(any character) *(zero or more occurences) \\. (".")
+    efficiencies_sfa2 = data.frame(efficiency = efficiencies(sfront2, newdata = CSP_predict),
+                                  aces = rownames(efficiencies(sfront2, newdata = CSP_predict))) |>
+      rename("efficiency_sfa2" = "efficiency") 
     
     # B. Join all efficiency tables
-    CSP_predict = full_join(CSP_predict, efficiencies_sfaz, 
-                            by = c("aces" = "aces", "year" = "year"))
+    CSP_predict = full_join(CSP_predict, efficiencies_sfa2, 
+                            by = c("aces" = "aces"))
     CSP_predict = full_join(CSP_predict,efficiencies_sfa, by = c("aces" = "aces"))
     
     CSP_predict_summary = CSP_predict |> group_by(aces) |>
       summarise( staff = mean(staff), predict_sfa = mean(predict_sfa), difference = mean(difference),
-                 differencez = mean(differencez), difference_perc_sfa = differencez/mean(predict_sfa),
-                 difference_perc_sfaz = differencez/mean(predict_sfaz),
-                 efficiency_sfa = mean(efficiency_sfa), efficiency_sfa_z = mean(efficiency_sfa_z),
+                 difference2 = mean(difference2), difference_perc_sfa = difference/mean(predict_sfa),
+                 difference_perc_sfa2 = difference2/mean(predict_sfa2),
+                 efficiency_sfa = mean(efficiency_sfa), efficiency_sfa2 = mean(efficiency_sfa2),
                  inscritos = mean(inscritos))
-    write.csv(CSP_predict_summary, "CSP_eff_summary.csv", row.names = FALSE)
+    write.csv(CSP_predict_summary, "03.CSP_eff_pred_summary.csv", row.names = FALSE)
     
     ### 4.3 Over cost Estimation ------------------------------------------
-    
     # A. Mean efficiency Portugal and Azores
     innef_P = 1-round(summary(sfront)$efficMean,3)
-    innefz_P = 1-round(summary(sfrontz)$efficMean,3)
+    innef2_P = 1-round(summary(sfront2)$efficMean,3)
     
     # B. Table with over costs
     CSP_predict = CSP_predict |>
         mutate(Inef_Cost_Cont = innef_P * predict_sfa, 
-               Inef_Cost_Cont_z = innefz_P * predict_sfaz,
+               Inef_Cost_Cont2 = innef2_P * predict_sfa2,
                Innef_Cost_Isl = (1-efficiency_sfa)*predict_sfa,
-               Innef_Cost_Isl_z = (1-efficiency_sfa_z)*predict_sfaz,
+               Innef_Cost_Isl2 = (1-efficiency_sfa2)*predict_sfa2,
                overcost =  Innef_Cost_Isl- Inef_Cost_Cont,
-               overcostz = Innef_Cost_Isl_z - Inef_Cost_Cont_z,
-               mean_overz = overcostz/inscritos,
+               overcost2 = Innef_Cost_Isl2 - Inef_Cost_Cont2,
+               mean_over = overcost/inscritos,
+               mean_over2 = overcost2/inscritos,
                pess_insc = staff/inscritos)
     
-    Azo_CSP_predict_sum = CSP_predict |> filter(azo == 1) |>
+    CSP_predict_Isl = CSP_predict |> filter(azo == 1 | mad == 1)
+    write.csv(CSP_predict_Isl, "04.CSP_predict_Isl.csv", row.names = FALSE)
+    
+    CSP_predict_sum_Isl = CSP_predict |> filter(azo == 1 | mad == 1) |>
     group_by(aces) |>
-    summarise(staff = sum(staff), 
-              Inef_Cost_Cont = sum (Inef_Cost_Cont), Inef_Cost_Cont_z = sum(Inef_Cost_Cont_z),
-              Innef_Cost_Isl = sum(Innef_Cost_Isl), Innef_Cost_Isl_z = sum(Innef_Cost_Isl_z),
-              overcost = sum(overcost), overcostz = sum(overcostz),
-              mean_overz = mean(mean_overz),
+    summarise(staff = mean(staff), 
+              predict_sfa = mean(predict_sfa),
+              predict_sfa2 = mean(predict_sfa2),
+              difference = mean(difference), 
+              difference2 = mean(difference2), 
+              difference_perc_sfa = mean(difference_perc_sfa),
+              difference_perc_sfa2 = mean(difference_perc_sfa2),
+              efficiency_sfa = mean(efficiency_sfa),
+              efficiency_sfa2 = mean(efficiency_sfa2),
+              Inef_Cost_Cont = mean(Inef_Cost_Cont), Inef_Cost_Cont2 = mean(Inef_Cost_Cont2),
+              Innef_Cost_Isl = mean(Innef_Cost_Isl), Innef_Cost_Isl2 = mean(Innef_Cost_Isl2),
+              overcost = mean(overcost), overcost2 = mean(overcost2),
+              mean_over2 = mean(mean_over2),
+              mean_over = mean(mean_over),
               mean_pess_insc = mean(pess_insc)) |>
       distinct()
-    write.csv(Azo_CSP_predict_sum, "CSP_predict_Azo_sum.csv", row.names = FALSE)
+    write.csv(CSP_predict_sum_Isl, "04.CSP_predict_Azo_sum.csv", row.names = FALSE)
     
     # Save the summary table as a PDF file
-    pdf(paste0("CSH_predict_overcost_azores.pdf"), width = 20, height = 25)
-    grid.table(Azo_CSP_predict_sum, rows = NULL)
+    pdf(paste0("04.CSH_predict_overcost_azores.pdf"), width = 20, height = 25)
+    grid.table(CSP_predict_sum_Isl, rows = NULL)
     dev.off()
     
-    Azo_CSP_predict_sum = CSP_predict |> group_by(aces) |>
-      summarise( staff = mean(staff), predict_sfa = mean(predict_sfa), difference = mean(difference),
-                 differencez = mean(differencez), difference_perc_sfa = differencez/mean(predict_sfa),
-                 difference_perc_sfaz = differencez/mean(predict_sfaz),
-                 efficiency_sfa = mean(efficiency_sfa), efficiency_sfa_z = mean(efficiency_sfa_z),
-                 overcost = mean(overcost), overcostz = mean(overcostz))
-    write.csv(Azo_CSP_predict_sum, "CSP_Azo_summary.csv", row.names = FALSE)
+    # write prediction table
+    CSP_predict_pdf = CSP_predict_sum_Isl |> select(aces, staff, predict_sfa, predict_sfa2, difference, difference2, 
+                                        difference_perc_sfa, difference_perc_sfa2, efficiency_sfa,
+                                        efficiency_sfa2, Inef_Cost_Cont, Innef_Cost_Isl, overcost, mean_over,mean_over2,
+                                        mean_pess_insc)
+    write.csv(CSP_predict_pdf, "CSP_pred_eff.csv", row.names = FALSE)
+    # Save the summary table as a PDF file
+    pdf(paste0("04.CSP_predict_overcost.pdf"), width = 10, height = 4)
+    grid.table(CSP_predict, rows = NULL)
+    dev.off()
+    
   ## 5. Graph -------------------------------------------------------------
-    CSP_predict = CSP_predict |> mutate(new_predict = predict_sfa*me1)
-    CSP_predict = CSP_predict |> mutate(new_predict_2 = predict_sfa*efficiency_sfa)
     CSP_predict = CSP_predict |> mutate(pred_overcost = predict_sfa + overcost)
     
+    # Graph Azores
     ggplot(data = filter(CSP_predict, year == 2018), aes(x = app, y = staff, color = azo)) +
       geom_point(alpha = 0.5) +  # Data points
-      xlim(0, 2.6e+05) +
-      ylim(0, 1.5e+07) +
-      geom_line(data = filter(CSP_predict, azo == 0, year == 2018), aes(y = predict_sfa), linetype = "dashed", color = "lightgreen") +
+      #xlim(0, 2.6e+05) +
+      #ylim(0, 1.5e+07) +
+      geom_line(data = filter(CSP_predict, azo == 0 & mad == 0, year == 2018), aes(y = predict_sfa, x = app), linetype = "dashed", color = "lightgreen") +
       geom_point(data = filter(CSP_predict, azo == 1, year == 2018), aes(x = app, y = pred_overcost), color = "red", shape = 4, size = 3) +
       geom_segment(data = filter(CSP_predict, azo == 1, year == 2018), aes(x = app, y = predict_sfa, xend = app, yend = pred_overcost), color = "red", linetype = "dotted") +
       geom_segment(data = filter(CSP_predict, azo == 1, year == 2018), aes(x = app, y = pred_overcost, xend = app, yend = staff), color = "blue", linetype = "dotted") +
@@ -1072,17 +1083,25 @@ library(gridExtra)
                          labels = c("Portugal Continental", "Açores"),
                          name = "")
       
-    ggsave(filename = "CDgraph_eff.png", plot = last_plot(), width = 10, height = 8, dpi = 300)
+    ggsave(filename = "05.CDgraph_Azo.png", plot = last_plot(), width = 10, height = 8, dpi = 300)
     
-    # write prediction table
-    CSP_predict = CSP_predict |> select(aces, year, staff, predict_sfa, predict_sfaz, difference, differencez, 
-                                        difference_perc_sfa, difference_perc_sfaz, efficiency_sfa,
-                                        efficiency_sfa_z)
-    write.csv(CSP_predict, "CSP_pred_eff.csv", row.names = FALSE)
-    # Save the summary table as a PDF file
-    pdf(paste0("CSP_predict_overcost.pdf"), width = 10, height = 4)
-    grid.table(CSP_predict, rows = NULL)
-    dev.off()
+    # Graph Madeira
+    ggplot(data = filter(CSP_predict, year == 2018), aes(x = app, y = staff, color = mad)) +
+      geom_point(alpha = 0.5) +  # Data points
+      xlim(0, 2e+05) +
+      ylim(0, 1.5e+07) +
+      geom_line(data = filter(CSP_predict, mad == 0 & azo == 0, year == 2018), aes(y = predict_sfa, x = app), linetype = "dashed", color = "lightgreen") +
+      geom_point(data = filter(CSP_predict, mad == 1, year == 2018), aes(x = app, y = pred_overcost), color = "red", shape = 4, size = 3) +
+      geom_segment(data = filter(CSP_predict, mad == 1, year == 2018), aes(x = app, y = predict_sfa, xend = app, yend = pred_overcost), color = "red", linetype = "dotted") +
+      geom_segment(data = filter(CSP_predict, mad == 1, year == 2018), aes(x = app, y = pred_overcost, xend = app, yend = staff), color = "blue", linetype = "dotted") +
+      geom_point(data = filter(CSP_predict, mad == 1, year == 2018), aes(x = app, y = predict_sfa), color = "red") +
+      labs(x = "Consultas", y = "Custos com Pessoal", title = "Fronteira Estocástica", caption = "Note: This graphic depict a Cobb Douglas cost function for the year 2018." ) +
+      scale_color_manual(values = c("1" = "lightblue", "0" = "lightgreen"),
+                         labels = c("Portugal Continental", "Açores"),
+                         name = "")
+    
+    ggsave(filename = "05.CDgraph_mad.png", plot = last_plot(), width = 10, height = 8, dpi = 300)
+  
 # IV. Tests -----------------------------------------------------------------
 warnings()  
 setwd("../../..")

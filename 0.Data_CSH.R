@@ -553,7 +553,8 @@ hospitals_mad = read_csv("data/CSH/8. Madeira/mad.csv")
               in_days = sum(in_days, na.rm = TRUE), patient_dis = sum(patient_dis),
               urge = sum(urge), day_app = sum(day_app), operational = sum(operational), cmvmc = sum(cmvmc), 
               staff = sum(staff), beds = sum(beds), pharma = sum(pharma), materials = sum(materials), 
-              fse = sum(fse), wait_scheduled_surg = mean(wait_scheduled_surg), wait_app = mean(wait_app, na.rm = TRUE)) |>
+              fse = sum(fse), wait_scheduled_surg = mean(wait_scheduled_surg), wait_app = mean(wait_app, na.rm = TRUE),
+              case_mix = mean(case_mix)) |>
     ungroup() |>
     mutate(azo = 1 , mad = 0, operational_ACSS = operational,
            azo = as.factor(azo), mad = as.factor(mad),
@@ -571,7 +572,7 @@ hospitals_mad = read_csv("data/CSH/8. Madeira/mad.csv")
   hospitals_mad = hospitals_mad |>
     mutate(region = "Região de Saúde da Madeira",
            mad = 1 , azo = 0, operational_ACSS = operational,
-           mad = as.factor(mad), azo = as.factor(mad))
+           mad = as.factor(mad), azo = as.factor(azo))
 
   CSH = bind_rows(CSH, hospitals_mad)
   
